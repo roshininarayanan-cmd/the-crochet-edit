@@ -1,4 +1,6 @@
 export type Difficulty = "Beginner" | "Intermediate" | "Advanced";
+export const INSPIRATION_STATUSES = ["Want to Make", "In Progress", "Completed"] as const;
+export type InspirationStatus = typeof INSPIRATION_STATUSES[number];
 export interface CategoryOption { id: string; name: string }
 export interface InspirationInput {
   title: string;
@@ -11,6 +13,7 @@ export interface InspirationInput {
 export interface InspirationRecord {
   id: string;
   title: string;
+  status: InspirationStatus;
   categoryId: string;
   categoryName: string;
   difficulty: Difficulty | null;

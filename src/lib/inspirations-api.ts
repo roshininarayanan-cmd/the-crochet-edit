@@ -1,6 +1,8 @@
-import type { CategoryOption, InspirationInput, InspirationRecord } from "../../shared/inspiration-contract";
+import { INSPIRATION_STATUSES, type CategoryOption, type InspirationInput, type InspirationRecord, type InspirationStatus } from "../../shared/inspiration-contract";
 import type { DashboardSummary } from "../../shared/dashboard-contract";
 export type { CategoryOption, InspirationInput, InspirationRecord } from "../../shared/inspiration-contract";
+export { INSPIRATION_STATUSES };
+export type { InspirationStatus } from "../../shared/inspiration-contract";
 export type { DashboardCategoryCount, DashboardSummary } from "../../shared/dashboard-contract";
 
 export class LibraryApiError extends Error {
@@ -34,6 +36,11 @@ export const listFavorites = () => request<InspirationRecord[]>("/api/favorites"
 export const getDashboardSummary = () => request<DashboardSummary>("/api/dashboard");
 export const getInspiration = (id: string) =>
   request<InspirationRecord>(`/api/inspirations/${encodeURIComponent(id)}`);
+export const updateInspirationStatus = (id: string, status: InspirationStatus) =>
+  request<InspirationRecord>(`/api/inspirations/${encodeURIComponent(id)}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  });
 export const starInspiration = (id: string) =>
   request<void>(`/api/inspirations/${encodeURIComponent(id)}/star`, { method: "POST" });
 export const unstarInspiration = (id: string) =>

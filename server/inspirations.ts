@@ -2,7 +2,7 @@ import { Router, type Request, type Response, type NextFunction } from "express"
 import { and, asc, count, desc, eq, exists } from "drizzle-orm";
 import multer from "multer";
 import { categories, inspirations, stars, users } from "../shared/schema";
-import type { Difficulty, InspirationInput } from "../shared/inspiration-contract";
+import { INSPIRATION_STATUSES, type Difficulty, type InspirationInput, type InspirationStatus } from "../shared/inspiration-contract";
 import type { DashboardSummary } from "../shared/dashboard-contract";
 import { db } from "./db";
 import { dataOwnership, DataOwnershipError } from "./data-ownership";
@@ -44,6 +44,17 @@ function optionalUrl(body: Record<string, unknown>, key: string): string | null 
   }
 }
 
+function parseInspirationStatus(body: unknown): InspirationStatus {
+  if (!body || typeof body !== "object" || Array.isArray(body)) {
+    throw new InputError("Choose Want to Make, In Progress, or Completed.");
+  }
+  const status = (body as Record<string, unknown>).status;
+  if (typeof status !== "string" || !(INSPIRATION_STATUSES as readonly string[]).includes(status)) {
+    throw new InputError("Choose Want to Make, In Progress, or Completed.");
+  }
+  return status as InspirationStatus;
+}
+
 function parseRemoveUploadedPhoto(body: unknown) {
   if (!body || typeof body !== "object" || Array.isArray(body)) return false;
   const value = (body as Record<string, unknown>).removeUploadedPhoto;
@@ -74,6 +85,7 @@ export function parseInspirationInput(body: unknown): Required<InspirationInput>
 function inspirationSelection(userId: string, connection: Connection) {
   return {
     id: inspirations.id, title: inspirations.title,
+    status: inspirations.status,
     categoryId: inspirations.categoryId, categoryName: categories.name,
     patternUrl: inspirations.patternUrl, imageUrl: inspirations.imageUrl,
     difficulty: inspirations.difficulty, notes: inspirations.notes,
@@ -219,6 +231,17 @@ export function createLibraryRouter(connection: Connection = db) {
   router.get("/inspirations/:id", handle(async (req, res) => {
     dataOwnership(req, connection);
     res.json(presentInspiration(await findOwned(req, requireId(req))));
+  }));
+  router.patch("/inspirations/:id/status", handle(async (req, res) => {
+    const scope = dataOwnership(req, connection);
+    const id = requireId(req);
+    await scope.requireInspiration(id);
+    const status = parseInspirationStatus(req.body);
+    const [updated] = await connection.update(inspirations).set({ status, updatedAt: new Date() })
+      .where(and(scope.inspirationFilter, eq(inspirations.id, id)))
+      .returning({ id: inspirations.id });
+    if (!updated) throw new DataOwnershipError(404);
+    res.json(presentInspiration(await findOwned(req, id)));
   }));
   router.get("/inspirations/:id/photo", handle(async (req, res) => {
     const scope = dataOwnership(req, connection);

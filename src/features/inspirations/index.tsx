@@ -6,15 +6,18 @@ import {
   deleteInspiration,
   getCategories,
   getInspiration,
+  INSPIRATION_STATUSES,
   listFavorites,
   LibraryApiError,
   listInspirations,
   starInspiration,
+  updateInspirationStatus,
   updateInspiration,
   unstarInspiration,
   type CategoryOption,
   type InspirationInput,
   type InspirationRecord,
+  type InspirationStatus,
 } from "../../lib/inspirations-api";
 import { filterAndSortInspirations, type InspirationSort } from "./gallery-utils";
 import "./inspirations.css";
@@ -122,6 +125,11 @@ function BrokenImageMark({ category }: { category: string }) {
 function CategoryChip({ name }: { name: string }) {
   const colorClass = categoryChipClasses[name] ?? "other";
   return <span className={`inspiration-chip category-chip category-${colorClass}`}>{name}</span>;
+}
+
+function ProjectStatusBadge({ status }: { status: InspirationStatus }) {
+  const statusClass = status.toLowerCase().replace(/\s+/g, "-");
+  return <span className={`inspiration-status-badge status-${statusClass}`}>{status}</span>;
 }
 
 function InspirationImage({
@@ -367,6 +375,7 @@ function GalleryPage({ favoritesOnly = false }: { favoritesOnly?: boolean }) {
                       <div className="inspiration-card-meta">
                         <CategoryChip name={item.categoryName} />
                         {item.difficulty && <span className="inspiration-chip difficulty">{item.difficulty}</span>}
+                        <ProjectStatusBadge status={item.status} />
                       </div>
                     </div>
                   </Link>
@@ -551,7 +560,7 @@ function InspirationForm({ editing }: { editing: boolean }) {
       const saved = editing && id
         ? await updateInspiration(id, input, photoFile ?? undefined, removeUploadedPhoto)
         : await createInspiration(input, photoFile ?? undefined);
-      setLocation(editing ? `/inspirations/${encodeURIComponent(saved.id)}` : "/inspirations");
+      setLocation("/inspirations");
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "We couldn’t save your idea. Please try again.";
       const field = fieldForServerError(message);
@@ -703,11 +712,18 @@ function DetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmReturnToCollection, setConfirmReturnToCollection] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const deleteLock = useRef(false);
+  const statusLock = useRef(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
+  const returnNoRef = useRef<HTMLButtonElement>(null);
+  const returnDialogRef = useRef<HTMLElement>(null);
+  const statusSelectRef = useRef<HTMLSelectElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -753,6 +769,36 @@ function DetailPage() {
     return () => window.removeEventListener("keydown", manageDialogKeys);
   }, [confirmDelete]);
 
+  useEffect(() => {
+    if (!confirmReturnToCollection) return;
+    returnNoRef.current?.focus();
+    function manageReturnDialogKeys(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        closeReturnPrompt();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const controls = returnDialogRef.current?.querySelectorAll<HTMLElement>("button:not(:disabled)");
+      if (!controls?.length) return;
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    window.addEventListener("keydown", manageReturnDialogKeys);
+    return () => window.removeEventListener("keydown", manageReturnDialogKeys);
+  }, [confirmReturnToCollection]);
+
+  function closeReturnPrompt() {
+    setConfirmReturnToCollection(false);
+    window.requestAnimationFrame(() => statusSelectRef.current?.focus());
+  }
+
   async function confirmRemove() {
     if (!id || deleteLock.current) return;
     deleteLock.current = true;
@@ -765,6 +811,24 @@ function DetailPage() {
       setDeleteError(reason instanceof Error ? reason.message : "We couldn’t delete this idea. Please try again.");
       setDeleting(false);
       deleteLock.current = false;
+    }
+  }
+
+  async function saveStatus(event: ChangeEvent<HTMLSelectElement>) {
+    if (!id || statusLock.current || !record) return;
+    const nextStatus = event.currentTarget.value as InspirationStatus;
+    if (!INSPIRATION_STATUSES.includes(nextStatus)) return;
+    statusLock.current = true;
+    setStatusSaving(true);
+    setStatusError(null);
+    try {
+      setRecord(await updateInspirationStatus(id, nextStatus));
+      setConfirmReturnToCollection(true);
+    } catch (reason) {
+      setStatusError(reason instanceof Error ? reason.message : "We couldn’t update this project status. Please try again.");
+    } finally {
+      statusLock.current = false;
+      setStatusSaving(false);
     }
   }
 
@@ -800,8 +864,25 @@ function DetailPage() {
                 <div className="inspiration-detail-categories">
                   <CategoryChip name={record.categoryName} />
                   {record.difficulty && <span className="inspiration-chip difficulty">{record.difficulty}</span>}
+                  <ProjectStatusBadge status={record.status} />
                 </div>
                 <h1>{record.title}</h1>
+                <div className="inspiration-project-status-control">
+                  <label htmlFor="inspiration-project-status">Project status</label>
+                  <select
+                    ref={statusSelectRef}
+                    id="inspiration-project-status"
+                    value={record.status}
+                    onChange={(event) => void saveStatus(event)}
+                    disabled={statusSaving || confirmReturnToCollection}
+                    aria-describedby={statusError ? "inspiration-project-status-error" : undefined}
+                    aria-invalid={Boolean(statusError)}
+                  >
+                    {INSPIRATION_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+                  </select>
+                  {statusSaving && <span className="inspiration-status-saving" role="status">Saving status…</span>}
+                  {statusError && <p id="inspiration-project-status-error" className="inspiration-field-error" role="alert">{statusError}</p>}
+                </div>
                 {record.patternUrl && (
                   <a className="inspiration-pattern" href={record.patternUrl} target="_blank" rel="noopener noreferrer">
                     Open original pattern <span aria-hidden="true">↗</span>
@@ -829,6 +910,27 @@ function DetailPage() {
             <div className="inspiration-dialog-actions" style={{ marginTop: 19 }}>
               <button ref={cancelRef} type="button" className="inspiration-button secondary small" disabled={deleting} onClick={() => setConfirmDelete(false)}>Keep idea</button>
               <button type="button" className="inspiration-button danger small" disabled={deleting} onClick={() => void confirmRemove()}>{deleting ? "Deleting…" : "Delete idea"}</button>
+            </div>
+          </section>
+        </div>
+      )}
+      {confirmReturnToCollection && record && (
+        <div className="inspiration-dialog-backdrop" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) closeReturnPrompt();
+        }}>
+          <section
+            ref={returnDialogRef}
+            className="inspiration-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="return-collection-title"
+            aria-describedby="return-collection-description"
+          >
+            <h2 id="return-collection-title">Return to My Collection?</h2>
+            <p id="return-collection-description">Your progress has been saved.</p>
+            <div className="inspiration-dialog-actions" style={{ marginTop: 19 }}>
+              <button ref={returnNoRef} type="button" className="inspiration-button secondary small" onClick={closeReturnPrompt}>No</button>
+              <button type="button" className="inspiration-button small" onClick={() => setLocation("/inspirations")}>Yes</button>
             </div>
           </section>
         </div>
