@@ -17,3 +17,7 @@ Display a welcome message when users are logged in and Sign Up and Log In button
 Do not build any other features yet, including the inspiration gallery, favorites, categories, or dashboard.
 
 Create a file called prompts/signup.md and save this entire prompt inside it. This is required for my class assignment.
+
+## Homepage design update
+
+I want the yarn to look more like yarn, remove the line about your hands itching, "Your next pretty project" instead of make room for, make the colors actually soft yellow, soft pink, sage green, and light blue
