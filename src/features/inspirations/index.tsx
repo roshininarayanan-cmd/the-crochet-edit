@@ -16,6 +16,22 @@ import {
 import "./inspirations.css";
 
 const difficulties = ["Beginner", "Intermediate", "Advanced"] as const;
+const categoryIcons: Record<string, string> = {
+  Plushies: "/category-plushies.svg",
+  Clothing: "/category-clothing.svg",
+  Bags: "/category-bag.svg",
+  Accessories: "/category-accessories.svg",
+  "Home Decor": "/category-home-decor.svg",
+  Gifts: "/category-gifts.svg",
+};
+const categoryChipClasses: Record<string, string> = {
+  Plushies: "plushies",
+  Clothing: "clothing",
+  Bags: "bags",
+  Accessories: "accessories",
+  "Home Decor": "home-decor",
+  Gifts: "gifts",
+};
 
 function AccountGate({ Page }: { Page: ComponentType }) {
   const { isLoaded, isSignedIn } = useUser();
@@ -34,11 +50,23 @@ function PageTop({ children }: { children: ReactNode }) {
 }
 
 function BrokenImageMark({ category }: { category: string }) {
+  const icon = categoryIcons[category] ?? categoryIcons.Accessories;
   return (
     <div className="inspiration-placeholder" aria-label={`${category} crochet idea without a photo`}>
-      <img className="inspiration-placeholder-icon" src="/category-bag.svg" alt="" aria-hidden="true" />
+      <img
+        className="inspiration-placeholder-icon"
+        src={icon}
+        alt=""
+        aria-hidden="true"
+        data-category={category.toLowerCase().replace(/\s+/g, "-")}
+      />
     </div>
   );
+}
+
+function CategoryChip({ name }: { name: string }) {
+  const colorClass = categoryChipClasses[name] ?? "other";
+  return <span className={`inspiration-chip category-chip category-${colorClass}`}>{name}</span>;
 }
 
 function InspirationImage({ src, title, category, detail = false }: { src: string | null; title: string; category: string; detail?: boolean }) {
@@ -128,7 +156,7 @@ function GalleryPage() {
                     <div className="inspiration-card-body">
                       <h2 className="inspiration-card-title">{item.title}</h2>
                       <div className="inspiration-card-meta">
-                        <span className="inspiration-chip lavender">{item.categoryName}</span>
+                        <CategoryChip name={item.categoryName} />
                         {item.difficulty && <span className="inspiration-chip difficulty">{item.difficulty}</span>}
                       </div>
                     </div>
@@ -372,7 +400,7 @@ function DetailPage() {
               <div className="inspiration-detail-visual"><InspirationImage src={record.imageUrl} title={record.title} category={record.categoryName} detail /></div>
               <article className="inspiration-detail-copy">
                 <div className="inspiration-detail-categories">
-                  <span className="inspiration-chip lavender">{record.categoryName}</span>
+                  <CategoryChip name={record.categoryName} />
                   {record.difficulty && <span className="inspiration-chip difficulty">{record.difficulty}</span>}
                 </div>
                 <h1>{record.title}</h1>
