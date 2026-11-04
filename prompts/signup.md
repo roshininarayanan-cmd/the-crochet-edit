@@ -21,3 +21,7 @@ Create a file called prompts/signup.md and save this entire prompt inside it. Th
 ## Homepage design update
 
 I want the yarn to look more like yarn, remove the line about your hands itching, "Your next pretty project" instead of make room for, make the colors actually soft yellow, soft pink, sage green, and light blue
+
+## Compact homepage update
+
+Can you condense the design intro page so the yarn is visible without scrolling? Save this prompt to prompts/signup.md as well
