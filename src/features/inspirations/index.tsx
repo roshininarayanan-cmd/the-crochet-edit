@@ -16,6 +16,7 @@ import {
   type InspirationInput,
   type InspirationRecord,
 } from "../../lib/inspirations-api";
+import { filterAndSortInspirations, type InspirationSort } from "./gallery-utils";
 import "./inspirations.css";
 
 const difficulties = ["Beginner", "Intermediate", "Advanced"] as const;
@@ -171,18 +172,28 @@ function EmptyFavoritesState() {
 function GalleryPage({ favoritesOnly = false }: { favoritesOnly?: boolean }) {
   const [, setLocation] = useLocation();
   const [items, setItems] = useState<InspirationRecord[] | null>(null);
+  const [availableCategories, setAvailableCategories] = useState<CategoryOption[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [starError, setStarError] = useState<string | null>(null);
   const [pendingStarIds, setPendingStarIds] = useState<Set<string>>(new Set());
+  const [searchText, setSearchText] = useState("");
+  const [categoryFilter, setCategoryFilter] = useState("all");
+  const [difficultyFilter, setDifficultyFilter] = useState("all");
+  const [sortOrder, setSortOrder] = useState<InspirationSort>("newest");
   const [attempt, setAttempt] = useState(0);
   const starRequestLock = useRef(new Set<string>());
   useEffect(() => {
     let active = true;
     setItems(null);
+    setAvailableCategories(null);
     setError(null);
     setStarError(null);
-    (favoritesOnly ? listFavorites() : listInspirations()).then((records) => {
-      if (active) setItems(records);
+    const categoriesRequest: Promise<CategoryOption[]> = favoritesOnly ? Promise.resolve([]) : getCategories();
+    Promise.all([favoritesOnly ? listFavorites() : listInspirations(), categoriesRequest]).then(([records, categories]) => {
+      if (active) {
+        setItems(records);
+        setAvailableCategories(categories);
+      }
     }).catch((reason: unknown) => {
       if (active) setError(reason instanceof Error ? reason.message : "Please try again in a moment.");
     });
@@ -214,6 +225,25 @@ function GalleryPage({ favoritesOnly = false }: { favoritesOnly?: boolean }) {
     }
   }
 
+  const filtersAreActive = Boolean(
+    searchText.trim() || categoryFilter !== "all" || difficultyFilter !== "all" || sortOrder !== "newest",
+  );
+  const visibleItems = favoritesOnly || !items
+    ? items ?? []
+    : filterAndSortInspirations(items, {
+      search: searchText,
+      categoryId: categoryFilter,
+      difficulty: difficultyFilter,
+      sort: sortOrder,
+    });
+
+  function clearFilters() {
+    setSearchText("");
+    setCategoryFilter("all");
+    setDifficultyFilter("all");
+    setSortOrder("newest");
+  }
+
   return (
     <main className="inspiration-area inspiration-library-page">
         <div className="inspiration-inner">
@@ -221,7 +251,11 @@ function GalleryPage({ favoritesOnly = false }: { favoritesOnly?: boolean }) {
           <div className="inspiration-heading-row">
             <div className="inspiration-library-heading">
               <h1 className="inspiration-title">{favoritesOnly ? "Your favorites" : "Your collection"}</h1>
-              <div className="inspiration-count">{items ? `${items.length} ${items.length === 1 ? "idea" : "ideas"} gathered` : "Your saved ideas"}</div>
+              <div className="inspiration-count" aria-live="polite">
+                {items
+                  ? `${visibleItems.length} ${visibleItems.length === 1 ? "idea" : "ideas"} ${filtersAreActive && !favoritesOnly ? "found" : "gathered"}`
+                  : "Your saved ideas"}
+              </div>
             </div>
             {!favoritesOnly && (
               <button type="button" className="inspiration-button small" onClick={() => setLocation("/inspirations/new")}>
@@ -229,6 +263,54 @@ function GalleryPage({ favoritesOnly = false }: { favoritesOnly?: boolean }) {
               </button>
             )}
           </div>
+
+          {!favoritesOnly && items && availableCategories && (
+            <section className="inspiration-gallery-controls" aria-label="Search, filter, and sort your inspirations">
+              <label className="inspiration-filter-control inspiration-gallery-search">
+                <span>Search by title</span>
+                <input
+                  type="search"
+                  value={searchText}
+                  onChange={(event) => setSearchText(event.target.value)}
+                  placeholder="Try “tote bag”"
+                  aria-label="Search inspirations by title"
+                />
+              </label>
+              <label className="inspiration-filter-control">
+                <span>Category</span>
+                <select value={categoryFilter} onChange={(event) => setCategoryFilter(event.target.value)} aria-label="Filter by category">
+                  <option value="all">All Categories</option>
+                  {availableCategories.map((category) => (
+                    <option key={category.id} value={category.id}>{category.name}</option>
+                  ))}
+                </select>
+              </label>
+              <label className="inspiration-filter-control">
+                <span>Difficulty</span>
+                <select value={difficultyFilter} onChange={(event) => setDifficultyFilter(event.target.value)} aria-label="Filter by difficulty">
+                  <option value="all">All Difficulties</option>
+                  {difficulties.map((difficulty) => <option key={difficulty} value={difficulty}>{difficulty}</option>)}
+                </select>
+              </label>
+              <label className="inspiration-filter-control">
+                <span>Sort by</span>
+                <select value={sortOrder} onChange={(event) => setSortOrder(event.target.value as InspirationSort)} aria-label="Sort inspirations">
+                  <option value="newest">Newest first</option>
+                  <option value="oldest">Oldest first</option>
+                  <option value="title-asc">Title A–Z</option>
+                  <option value="title-desc">Title Z–A</option>
+                </select>
+              </label>
+              <button
+                type="button"
+                className="inspiration-button secondary small inspiration-filter-clear"
+                onClick={clearFilters}
+                disabled={!filtersAreActive}
+              >
+                Clear Filters
+              </button>
+            </section>
+          )}
 
           {starError && <div className="inspiration-form-error inspiration-favorite-error" role="alert">{starError}</div>}
           {error && <RetryState message={error} onRetry={() => setAttempt((n) => n + 1)} />}
@@ -239,11 +321,22 @@ function GalleryPage({ favoritesOnly = false }: { favoritesOnly?: boolean }) {
             </div>
           )}
           {!error && items?.length === 0 && (
-            favoritesOnly ? <EmptyFavoritesState /> : <EmptyState onAdd={() => setLocation("/inspirations/new")} />
+            favoritesOnly
+              ? <EmptyFavoritesState />
+              : filtersAreActive
+                ? (
+                  <section className="inspiration-state" role="status">
+                    <div className="inspiration-state-mark" aria-hidden="true">⌕</div>
+                    <h2>No crochet inspirations found.</h2>
+                    <p>Try a different title or clear your filters to see your full collection.</p>
+                    <button type="button" className="inspiration-button secondary" onClick={clearFilters}>Clear Filters</button>
+                  </section>
+                )
+                : <EmptyState onAdd={() => setLocation("/inspirations/new")} />
           )}
-          {!error && !!items?.length && (
+          {!error && !!visibleItems.length && (
             <section className="inspiration-gallery" aria-label={favoritesOnly ? "Your favorite crochet inspiration" : "Your crochet inspiration"}>
-              {items.map((item) => (
+              {visibleItems.map((item) => (
                 <article key={item.id} className="inspiration-card">
                   <Link href={`/inspirations/${encodeURIComponent(item.id)}`} className="inspiration-card-link" aria-label={`View ${item.title}`}>
                     <div className="inspiration-image-wrap">
@@ -271,6 +364,14 @@ function GalleryPage({ favoritesOnly = false }: { favoritesOnly?: boolean }) {
                   </button>
                 </article>
               ))}
+            </section>
+          )}
+          {!error && !!items?.length && !favoritesOnly && !visibleItems.length && (
+            <section className="inspiration-state" role="status">
+              <div className="inspiration-state-mark" aria-hidden="true">⌕</div>
+              <h2>No crochet inspirations found.</h2>
+              <p>Try a different title or clear your filters to see your full collection.</p>
+              <button type="button" className="inspiration-button secondary" onClick={clearFilters}>Clear Filters</button>
             </section>
           )}
         </div>

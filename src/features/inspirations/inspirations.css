@@ -48,6 +48,23 @@
   max-width: none; font-size: clamp(30px, 3vw, 38px); line-height: 1.12; letter-spacing: -.03em;
 }
 .inspiration-library-page .inspiration-count { margin: 0; }
+.inspiration-gallery-controls {
+  display: grid; grid-template-columns: minmax(200px, 1.6fr) repeat(3, minmax(140px, 1fr)) auto;
+  align-items: end; gap: 11px; margin: 0 0 22px; padding: 14px;
+  border: 1px solid rgba(93, 105, 87, .12); border-radius: 18px;
+  background: rgba(255, 253, 249, .75);
+}
+.inspiration-filter-control {
+  display: grid; min-width: 0; gap: 6px; color: var(--in-muted);
+  font-size: 10px; letter-spacing: .045em; text-transform: uppercase;
+}
+.inspiration-filter-control input, .inspiration-filter-control select {
+  width: 100%; min-width: 0; height: 42px; padding: 0 12px;
+  border: 1px solid #e4dfd5; border-radius: 12px; background: var(--in-paper);
+  color: var(--in-ink); font-size: 12px; letter-spacing: normal; text-transform: none;
+}
+.inspiration-filter-control input::placeholder { color: #99958b; }
+.inspiration-filter-clear { min-height: 42px; white-space: nowrap; }
 .inspiration-button {
   min-height: 46px; padding: 0 21px; border: 0; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
   border-radius: 999px; background: var(--in-sage-deep); color: #fffdf9 !important; cursor: pointer;
@@ -207,12 +224,15 @@
 @media (max-width: 850px) {
   .inspiration-area { padding-left: 28px; padding-right: 28px; }
   .inspiration-gallery { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; }
+  .inspiration-gallery-controls { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .inspiration-gallery-search { grid-column: 1 / -1; }
   .inspiration-detail-layout { grid-template-columns: 1fr; }
   .inspiration-detail-visual { max-height: 520px; }
   .inspiration-detail-visual img { max-height: 520px; }
 }
 @media (max-width: 600px) {
   .inspiration-area { padding: 27px 19px 48px; }
+  .inspiration-gallery-controls { gap: 9px; padding: 11px; }
   .inspiration-heading-row { align-items: flex-start; flex-direction: column; margin-bottom: 27px; }
   .inspiration-library-page .inspiration-heading-row { flex-direction: row; align-items: center; margin-bottom: 14px; }
   .inspiration-heading-row .inspiration-button { align-self: stretch; }
