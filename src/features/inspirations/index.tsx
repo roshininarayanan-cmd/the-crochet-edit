@@ -712,6 +712,7 @@ function DetailPage() {
   const [notFound, setNotFound] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [confirmReturnToCollection, setConfirmReturnToCollection] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [statusSaving, setStatusSaving] = useState(false);
@@ -720,6 +721,9 @@ function DetailPage() {
   const statusLock = useRef(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
+  const returnNoRef = useRef<HTMLButtonElement>(null);
+  const returnDialogRef = useRef<HTMLElement>(null);
+  const statusSelectRef = useRef<HTMLSelectElement>(null);
 
   useEffect(() => {
     let active = true;
@@ -765,6 +769,36 @@ function DetailPage() {
     return () => window.removeEventListener("keydown", manageDialogKeys);
   }, [confirmDelete]);
 
+  useEffect(() => {
+    if (!confirmReturnToCollection) return;
+    returnNoRef.current?.focus();
+    function manageReturnDialogKeys(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        closeReturnPrompt();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const controls = returnDialogRef.current?.querySelectorAll<HTMLElement>("button:not(:disabled)");
+      if (!controls?.length) return;
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    window.addEventListener("keydown", manageReturnDialogKeys);
+    return () => window.removeEventListener("keydown", manageReturnDialogKeys);
+  }, [confirmReturnToCollection]);
+
+  function closeReturnPrompt() {
+    setConfirmReturnToCollection(false);
+    window.requestAnimationFrame(() => statusSelectRef.current?.focus());
+  }
+
   async function confirmRemove() {
     if (!id || deleteLock.current) return;
     deleteLock.current = true;
@@ -789,6 +823,7 @@ function DetailPage() {
     setStatusError(null);
     try {
       setRecord(await updateInspirationStatus(id, nextStatus));
+      setConfirmReturnToCollection(true);
     } catch (reason) {
       setStatusError(reason instanceof Error ? reason.message : "We couldn’t update this project status. Please try again.");
     } finally {
@@ -835,10 +870,11 @@ function DetailPage() {
                 <div className="inspiration-project-status-control">
                   <label htmlFor="inspiration-project-status">Project status</label>
                   <select
+                    ref={statusSelectRef}
                     id="inspiration-project-status"
                     value={record.status}
                     onChange={(event) => void saveStatus(event)}
-                    disabled={statusSaving}
+                    disabled={statusSaving || confirmReturnToCollection}
                     aria-describedby={statusError ? "inspiration-project-status-error" : undefined}
                     aria-invalid={Boolean(statusError)}
                   >
@@ -874,6 +910,27 @@ function DetailPage() {
             <div className="inspiration-dialog-actions" style={{ marginTop: 19 }}>
               <button ref={cancelRef} type="button" className="inspiration-button secondary small" disabled={deleting} onClick={() => setConfirmDelete(false)}>Keep idea</button>
               <button type="button" className="inspiration-button danger small" disabled={deleting} onClick={() => void confirmRemove()}>{deleting ? "Deleting…" : "Delete idea"}</button>
+            </div>
+          </section>
+        </div>
+      )}
+      {confirmReturnToCollection && record && (
+        <div className="inspiration-dialog-backdrop" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) closeReturnPrompt();
+        }}>
+          <section
+            ref={returnDialogRef}
+            className="inspiration-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="return-collection-title"
+            aria-describedby="return-collection-description"
+          >
+            <h2 id="return-collection-title">Return to My Collection?</h2>
+            <p id="return-collection-description">Your progress has been saved.</p>
+            <div className="inspiration-dialog-actions" style={{ marginTop: 19 }}>
+              <button ref={returnNoRef} type="button" className="inspiration-button secondary small" onClick={closeReturnPrompt}>No</button>
+              <button type="button" className="inspiration-button small" onClick={() => setLocation("/inspirations")}>Yes</button>
             </div>
           </section>
         </div>
