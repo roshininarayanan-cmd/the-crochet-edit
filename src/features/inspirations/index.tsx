@@ -560,7 +560,7 @@ function InspirationForm({ editing }: { editing: boolean }) {
       const saved = editing && id
         ? await updateInspiration(id, input, photoFile ?? undefined, removeUploadedPhoto)
         : await createInspiration(input, photoFile ?? undefined);
-      setLocation(editing ? `/inspirations/${encodeURIComponent(saved.id)}` : "/inspirations");
+      setLocation("/inspirations");
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "We couldn’t save your idea. Please try again.";
       const field = fieldForServerError(message);
