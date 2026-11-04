@@ -117,6 +117,20 @@ button { color: inherit; }
 .welcome-card h1 { font-size: clamp(58px, 8vw, 90px); margin: 22px 0 17px; }
 .welcome-card p { color: var(--muted); font: 18px/1.7 var(--serif); max-width: 440px; margin: 0 auto; }
 .welcome-stitch { display: inline-block; width: 28px; height: 3px; border-radius: 4px; background: var(--yellow); margin-top: 29px; }
+.welcome-first-action { min-height: 48px; padding: 15px 24px; font-weight: 600; box-shadow: 0 8px 20px rgba(83, 104, 78, .2); }
+.welcome-onboarding { width: min(100%, 720px); margin: 24px auto 0; position: relative; z-index: 1; }
+.welcome-onboarding h2 { margin: 0 0 13px; color: #454c44; font: 500 21px/1.2 var(--serif); }
+.welcome-steps { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; margin: 0; padding: 0; list-style: none; }
+.welcome-step {
+  display: flex; min-width: 0; min-height: 116px; flex-direction: column; align-items: center; justify-content: center;
+  padding: 14px 12px; border: 1px solid rgba(87, 95, 83, .12); border-radius: 15px; background: rgba(255, 253, 247, .9);
+}
+.welcome-step:nth-child(2) { background: rgba(239, 232, 243, .78); border-color: rgba(157, 132, 174, .19); }
+.welcome-step:nth-child(3) { background: rgba(232, 237, 227, .8); border-color: rgba(120, 138, 112, .18); }
+.welcome-step-number { display: grid; width: 25px; height: 25px; flex: 0 0 auto; place-items: center; margin-bottom: 7px; border-radius: 50%; background: #eee7f2; color: #766388; font-size: 10px; font-weight: 600; }
+.welcome-step-copy { display: grid; gap: 4px; }
+.welcome-step-copy strong { color: #41483f; font: 500 15px/1.2 var(--serif); }
+.welcome-step-copy small { color: #69736b; font-size: 10px; line-height: 1.45; }
 .welcome-orb { position: absolute; width: 260px; height: 260px; border-radius: 50%; opacity: .45; }
 .orb-sage { background: #e2e9de; top: 6%; left: 5%; }
 .orb-pink { background: #f5e5df; bottom: 4%; right: 8%; width: 210px; height: 210px; }
@@ -225,6 +239,13 @@ button { color: inherit; }
   .yarn-illustration { width: min(100%, 330px, 38vh); }
   .note-right { right: 1%; }
 }
+@media (max-width: 680px) {
+  .welcome-steps { grid-template-columns: 1fr; gap: 8px; }
+  .welcome-step { min-height: 0; flex-direction: row; justify-content: flex-start; gap: 11px; padding: 11px 13px; text-align: left; }
+  .welcome-step-number { margin: 0; }
+  .welcome-step-copy strong { font-size: 14px; }
+  .welcome-step-copy small { font-size: 11px; }
+}
 @media (max-width: 520px) {
   .site-header { height: auto; min-height: 64px; width: calc(100% - 36px); flex-wrap: wrap; gap: 4px; padding: 8px 0; }
   .brand { gap: 8px; }
@@ -256,6 +277,9 @@ button { color: inherit; }
   .welcome-page-with-dashboard .welcome-card { padding: 18px 4px 4px; }
   .welcome-page-with-dashboard .welcome-card h1 { font-size: clamp(42px, 11vw, 56px); margin: 13px 0 10px; }
   .welcome-page-with-dashboard .welcome-card p { font-size: 15px; }
+  .welcome-first-action { width: 100%; max-width: 320px; }
+  .welcome-onboarding { margin-top: 19px; }
+  .welcome-onboarding h2 { font-size: 19px; }
   .dashboard-page-embedded { padding-top: 14px; }
   .welcome-card h1 { font-size: 58px; }
   .welcome-card p { font-size: 16px; }

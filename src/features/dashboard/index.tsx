@@ -81,9 +81,11 @@ function SurpriseProjectPhoto({ project }: { project: InspirationRecord }) {
 export default function DashboardPage({
   embedded = false,
   onSurpriseReady,
+  onCollectionEmptyChange,
 }: {
   embedded?: boolean;
   onSurpriseReady?: (launch: (() => void) | null) => void;
+  onCollectionEmptyChange?: (isEmpty: boolean) => void;
 }) {
   const Root = embedded ? "div" : "main";
   const pageClass = embedded ? "dashboard-page dashboard-page-embedded" : "dashboard-page";
@@ -173,7 +175,10 @@ export default function DashboardPage({
     setError(null);
     try {
       const result = await getDashboardSummary();
-      if (requestId.current === currentRequest) setSummary(result);
+      if (requestId.current === currentRequest) {
+        setSummary(result);
+        onCollectionEmptyChange?.(result.totalInspirations === 0);
+      }
     } catch (caught) {
       if (requestId.current === currentRequest) {
         setError(caught instanceof Error ? caught.message : "We couldn't load your dashboard.");
@@ -184,7 +189,7 @@ export default function DashboardPage({
         setRefreshing(false);
       }
     }
-  }, []);
+  }, [onCollectionEmptyChange]);
 
   useEffect(() => {
     void loadSummary(true);

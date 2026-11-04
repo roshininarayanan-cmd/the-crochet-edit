@@ -177,6 +177,7 @@ function DashboardRoute() {
 function HomePage() {
   const { isLoaded, isSignedIn, user } = useUser();
   const [surpriseLauncher, setSurpriseLauncher] = useState<(() => void) | null>(null);
+  const [collectionIsEmpty, setCollectionIsEmpty] = useState<boolean | null>(null);
   const onSurpriseReady = useCallback((launch: (() => void) | null) => {
     setSurpriseLauncher(() => launch);
   }, []);
@@ -200,6 +201,11 @@ function HomePage() {
           </p>
           <span className="welcome-stitch" aria-hidden="true" />
           <div className="hero-actions" style={{ justifyContent: "center" }}>
+            {collectionIsEmpty === true && (
+              <Link className="button button-primary welcome-first-action" href="/inspirations/new">
+                Add Your First Inspiration <span aria-hidden="true">↗</span>
+              </Link>
+            )}
             <Link className="button button-primary" href="/inspirations">Open my collection <span aria-hidden="true">↗</span></Link>
             <button
               className="button button-primary welcome-surprise-button"
@@ -210,9 +216,41 @@ function HomePage() {
               Surprise Me! <span aria-hidden="true">✦</span>
             </button>
           </div>
+          {collectionIsEmpty === true && (
+            <section className="welcome-onboarding" aria-labelledby="welcome-onboarding-title">
+              <h2 id="welcome-onboarding-title">Your first project, in three steps</h2>
+              <ol className="welcome-steps">
+                <li className="welcome-step">
+                  <span className="welcome-step-number" aria-hidden="true">01</span>
+                  <span className="welcome-step-copy">
+                    <strong>Save an idea</strong>
+                    <small>Keep a pattern, photo, or note close.</small>
+                  </span>
+                </li>
+                <li className="welcome-step">
+                  <span className="welcome-step-number" aria-hidden="true">02</span>
+                  <span className="welcome-step-copy">
+                    <strong>Organize inspirations</strong>
+                    <small>Use categories to find ideas again.</small>
+                  </span>
+                </li>
+                <li className="welcome-step">
+                  <span className="welcome-step-number" aria-hidden="true">03</span>
+                  <span className="welcome-step-copy">
+                    <strong>Track your projects</strong>
+                    <small>Move from Want to Make to In Progress to Completed.</small>
+                  </span>
+                </li>
+              </ol>
+            </section>
+          )}
         </section>
         <Suspense fallback={<div className="dashboard-page dashboard-page-embedded" aria-label="Loading dashboard" />}>
-          <DashboardPage embedded onSurpriseReady={onSurpriseReady} />
+          <DashboardPage
+            embedded
+            onSurpriseReady={onSurpriseReady}
+            onCollectionEmptyChange={setCollectionIsEmpty}
+          />
         </Suspense>
       </main>
     );
