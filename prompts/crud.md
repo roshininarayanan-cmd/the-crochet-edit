@@ -33,3 +33,7 @@ Privacy: Each user must only be able to view, edit, and delete their own inspira
 Design: Maintain The Crochet Edit's existing cream, sage green, and lavender aesthetic, elegant typography, rounded cards, and responsive layout.
 
 Prompt Documentation: Create prompts/crud.md and save this entire prompt inside it.
+
+Can you make the "card" that shows the added idea more distinct? Like a box around the info
+
+Make it smaller so more things can be added
