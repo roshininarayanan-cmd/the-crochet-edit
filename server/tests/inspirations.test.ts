@@ -63,7 +63,7 @@ test("Feature 3 CRUD and Feature 5 favorites privacy", async (t) => {
         try {
           await t.test("every resource operation rejects a signed-out request", async () => {
             for (const [method, path] of [
-              ["GET", "/categories"], ["GET", "/inspirations"], ["GET", "/favorites"], ["POST", "/inspirations"],
+              ["GET", "/categories"], ["GET", "/inspirations"], ["GET", "/favorites"], ["GET", "/dashboard"], ["POST", "/inspirations"],
               ["GET", `/inspirations/${randomUUID()}`], ["PUT", `/inspirations/${randomUUID()}`],
               ["DELETE", `/inspirations/${randomUUID()}`],
               ["POST", `/inspirations/${randomUUID()}/star`],
@@ -197,6 +197,62 @@ test("Feature 3 CRUD and Feature 5 favorites privacy", async (t) => {
 
             assert.equal((await request(userA, "POST", path)).status, 204);
             assert.equal((await request(userA, "GET", "/favorites")).data.length, 1);
+          });
+          await t.test("dashboard totals and category chart use only the signed-in user's live records", async () => {
+            const emptyDashboard = await request(userB, "GET", "/dashboard");
+            assert.equal(emptyDashboard.status, 200);
+            assert.equal(emptyDashboard.data.totalInspirations, 0);
+            assert.equal(emptyDashboard.data.starredInspirations, 0);
+            assert.equal(emptyDashboard.data.categoriesUsed, 0);
+            assert(emptyDashboard.data.categoryCounts.every((category: { inspirationCount: number }) => category.inspirationCount === 0));
+
+            const categoryOptions = await request(userA, "GET", "/categories");
+            const plushies = categoryOptions.data.find((category: CategoryOption) => category.name === "Plushies");
+            assert(plushies);
+            const secondA = await request(userA, "POST", "/inspirations", {
+              ...input, title: "A second project", categoryId: categoryA.id,
+            });
+            assert.equal(secondA.status, 201);
+            const secondB = await request(userB, "POST", "/inspirations", {
+              ...input, title: "Another user's project", categoryId: categoryB.id,
+            });
+            assert.equal(secondB.status, 201);
+            assert.equal((await request(userB, "POST", `/inspirations/${secondB.data.id}/star`)).status, 204);
+
+            const summary = await request(userA, "GET", "/dashboard");
+            assert.equal(summary.status, 200);
+            assert.equal(summary.cacheControl, "private, no-store");
+            assert.equal(summary.data.totalInspirations, 2);
+            assert.equal(summary.data.starredInspirations, 1);
+            assert.equal(summary.data.categoriesUsed, 2);
+            const counts = Object.fromEntries(summary.data.categoryCounts.map((category: {
+              categoryName: string; inspirationCount: number;
+            }) => [category.categoryName, category.inspirationCount]));
+            assert.equal(counts.Plushies, 1);
+            assert.equal(counts.Gifts, 1);
+
+            const moved = await request(userA, "PUT", `/inspirations/${secondA.data.id}`, {
+              ...input, title: "A second project", categoryId: plushies.id,
+            });
+            assert.equal(moved.status, 200);
+            const afterEdit = await request(userA, "GET", "/dashboard");
+            assert.equal(afterEdit.data.totalInspirations, 2);
+            assert.equal(afterEdit.data.categoriesUsed, 1);
+            const editedCounts = Object.fromEntries(afterEdit.data.categoryCounts.map((category: {
+              categoryName: string; inspirationCount: number;
+            }) => [category.categoryName, category.inspirationCount]));
+            assert.equal(editedCounts.Plushies, 2);
+            assert.equal(editedCounts.Gifts, 0);
+
+            assert.equal((await request(userA, "DELETE", `/inspirations/${secondA.data.id}`)).status, 204);
+            const afterDelete = await request(userA, "GET", "/dashboard");
+            assert.equal(afterDelete.data.totalInspirations, 1);
+            assert.equal(afterDelete.data.starredInspirations, 1);
+            assert.equal(afterDelete.data.categoriesUsed, 1);
+            const userBSummary = await request(userB, "GET", "/dashboard");
+            assert.equal(userBSummary.data.totalInspirations, 1);
+            assert.equal(userBSummary.data.starredInspirations, 1);
+            assert.equal(userBSummary.data.categoriesUsed, 1);
           });
           await t.test("owner delete persists, and subsequent reads and repeated deletes return 404", async () => {
             assert.equal((await tx.select().from(stars).where(eq(stars.inspirationId, item.id))).length, 1);

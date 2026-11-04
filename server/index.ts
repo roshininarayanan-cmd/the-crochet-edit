@@ -72,7 +72,7 @@ app.post("/api/auth/sync", async (req, res) => {
   }
 });
 
-app.use(["/api/categories", "/api/inspirations", "/api/favorites"], requireLibraryOwner);
+app.use(["/api/categories", "/api/inspirations", "/api/favorites", "/api/dashboard"], requireLibraryOwner);
 app.use("/api", createLibraryRouter());
 app.use("/api", (_request, response) => {
   response.status(404).json({ error: "Not found." });
