@@ -16,6 +16,54 @@ import {
 import "./inspirations.css";
 
 const difficulties = ["Beginner", "Intermediate", "Advanced"] as const;
+type InspirationFormField = "title" | "categoryId" | "patternUrl" | "imageUrl";
+type InspirationFormErrors = Partial<Record<InspirationFormField, string>>;
+const formFieldIds: Record<InspirationFormField, string> = {
+  title: "inspiration-title",
+  categoryId: "inspiration-category",
+  patternUrl: "inspiration-pattern",
+  imageUrl: "inspiration-image",
+};
+
+function validateWebUrl(value: string, label: "pattern" | "image"): string | null {
+  if (!value.trim()) return null;
+  try {
+    const url = new URL(value.trim());
+    if (["http:", "https:"].includes(url.protocol) && !url.username && !url.password) return null;
+  } catch {
+    // Report malformed and unsupported URLs with the same helpful field message.
+  }
+  return `Please enter a valid ${label} URL beginning with http:// or https://.`;
+}
+
+function validateInspirationForm(
+  title: string,
+  categoryId: string,
+  patternUrl: string,
+  imageUrl: string,
+  categories: CategoryOption[],
+): InspirationFormErrors {
+  const errors: InspirationFormErrors = {};
+  if (!title.trim()) errors.title = "Please add a title for this inspiration.";
+  if (!categoryId || !categories.some((category) => category.id === categoryId)) {
+    errors.categoryId = "Please choose a category from the list.";
+  }
+  const patternError = validateWebUrl(patternUrl, "pattern");
+  const imageError = validateWebUrl(imageUrl, "image");
+  if (patternError) errors.patternUrl = patternError;
+  if (imageError) errors.imageUrl = imageError;
+  return errors;
+}
+
+function fieldForServerError(message: string): InspirationFormField | null {
+  const normalized = message.toLowerCase();
+  if (normalized.includes("title is required")) return "title";
+  if (normalized.includes("choose a category")) return "categoryId";
+  if (normalized.includes("pattern url")) return "patternUrl";
+  if (normalized.includes("image url")) return "imageUrl";
+  return null;
+}
+
 const categoryIcons: Record<string, string> = {
   Plushies: "/category-plushies.svg",
   Clothing: "/category-clothing.svg",
@@ -186,6 +234,7 @@ function InspirationForm({ editing }: { editing: boolean }) {
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<InspirationFormErrors>({});
   const saveLock = useRef(false);
 
   useEffect(() => {
@@ -206,8 +255,6 @@ function InspirationForm({ editing }: { editing: boolean }) {
         setImageUrl(item.imageUrl ?? "");
         setDifficulty(item.difficulty ?? "");
         setNotes(item.notes ?? "");
-      } else if (options.length) {
-        setCategoryId(options[0].id);
       }
     }).catch((reason: unknown) => {
       if (active) setLoadingError(reason instanceof Error ? reason.message : "Please try loading this form again.");
@@ -215,9 +262,33 @@ function InspirationForm({ editing }: { editing: boolean }) {
     return () => { active = false; };
   }, [editing, id, loadAttempt]);
 
+  function updateField(field: InspirationFormField, update: (value: string) => void, value: string) {
+    update(value);
+    setFieldErrors((current) => {
+      if (!current[field]) return current;
+      const next = { ...current };
+      delete next[field];
+      return next;
+    });
+    setSaveError(null);
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saveLock.current) return;
+    const errors = validateInspirationForm(title, categoryId, patternUrl, imageUrl, categories ?? []);
+    setFieldErrors(errors);
+    if (Object.keys(errors).length) {
+      const missing: string[] = [];
+      if (errors.title) missing.push("add a title");
+      if (errors.categoryId) missing.push("choose a category");
+      setSaveError(missing.length
+        ? `Please ${missing.join(" and ")} before saving.`
+        : "Please check the highlighted fields before saving.");
+      const firstInvalid = Object.keys(errors)[0] as InspirationFormField;
+      document.getElementById(formFieldIds[firstInvalid])?.focus();
+      return;
+    }
     saveLock.current = true;
     setSaving(true);
     setSaveError(null);
@@ -235,7 +306,15 @@ function InspirationForm({ editing }: { editing: boolean }) {
         : await createInspiration(input);
       setLocation(`/inspirations/${encodeURIComponent(saved.id)}`);
     } catch (reason) {
-      setSaveError(reason instanceof Error ? reason.message : "We couldn’t save your idea. Please try again.");
+      const message = reason instanceof Error ? reason.message : "We couldn’t save your idea. Please try again.";
+      const field = fieldForServerError(message);
+      if (field) {
+        setFieldErrors((current) => ({ ...current, [field]: message }));
+        setSaveError("Please check the highlighted field and try again.");
+        document.getElementById(formFieldIds[field])?.focus();
+      } else {
+        setSaveError(message);
+      }
     } finally {
       saveLock.current = false;
       setSaving(false);
@@ -256,25 +335,29 @@ function InspirationForm({ editing }: { editing: boolean }) {
               <h1 className="inspiration-title" style={{ marginTop: 17 }}>{editing ? <>Make it <em>yours.</em></> : <>A new idea,<br /><em>for later.</em></>}</h1>
               <p className="inspiration-intro">Keep the useful details together, so it’s easy to find when you’re ready to make.</p>
               <div className="inspiration-form-card">
-                <form className="inspiration-form" onSubmit={handleSubmit}>
+                <form className="inspiration-form" onSubmit={handleSubmit} noValidate>
                   <div className="inspiration-field">
                     <label htmlFor="inspiration-title">What are you dreaming up?</label>
-                    <input id="inspiration-title" name="title" required maxLength={300} value={title} onChange={(event) => setTitle(event.target.value)} placeholder="e.g. A little lavender market tote" />
+                    <input id="inspiration-title" name="title" maxLength={300} value={title} onChange={(event) => updateField("title", setTitle, event.target.value)} placeholder="e.g. A little lavender market tote" aria-invalid={Boolean(fieldErrors.title)} aria-describedby={fieldErrors.title ? "inspiration-title-error" : undefined} className={fieldErrors.title ? "is-invalid" : undefined} />
+                    {fieldErrors.title && <p id="inspiration-title-error" className="inspiration-field-error">{fieldErrors.title}</p>}
                   </div>
                   <div className="inspiration-field">
                     <label htmlFor="inspiration-category">Category</label>
-                    <select id="inspiration-category" name="categoryId" required value={categoryId} onChange={(event) => setCategoryId(event.target.value)}>
+                    <select id="inspiration-category" name="categoryId" value={categoryId} onChange={(event) => updateField("categoryId", setCategoryId, event.target.value)} aria-invalid={Boolean(fieldErrors.categoryId)} aria-describedby={fieldErrors.categoryId ? "inspiration-category-error" : undefined} className={fieldErrors.categoryId ? "is-invalid" : undefined}>
                       <option value="" disabled>Choose a category</option>
                       {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
                     </select>
+                    {fieldErrors.categoryId && <p id="inspiration-category-error" className="inspiration-field-error">{fieldErrors.categoryId}</p>}
                   </div>
                   <div className="inspiration-field">
                     <label htmlFor="inspiration-pattern">Original pattern link <span>· optional</span></label>
-                    <input id="inspiration-pattern" name="patternUrl" type="url" value={patternUrl} onChange={(event) => setPatternUrl(event.target.value)} placeholder="https://…" />
+                    <input id="inspiration-pattern" name="patternUrl" type="url" value={patternUrl} onChange={(event) => updateField("patternUrl", setPatternUrl, event.target.value)} placeholder="https://…" aria-invalid={Boolean(fieldErrors.patternUrl)} aria-describedby={fieldErrors.patternUrl ? "inspiration-pattern-error" : undefined} className={fieldErrors.patternUrl ? "is-invalid" : undefined} />
+                    {fieldErrors.patternUrl && <p id="inspiration-pattern-error" className="inspiration-field-error">{fieldErrors.patternUrl}</p>}
                   </div>
                   <div className="inspiration-field">
                     <label htmlFor="inspiration-image">Image link <span>· optional</span></label>
-                    <input id="inspiration-image" name="imageUrl" type="url" value={imageUrl} onChange={(event) => setImageUrl(event.target.value)} placeholder="https://…" />
+                    <input id="inspiration-image" name="imageUrl" type="url" value={imageUrl} onChange={(event) => updateField("imageUrl", setImageUrl, event.target.value)} placeholder="https://…" aria-invalid={Boolean(fieldErrors.imageUrl)} aria-describedby={fieldErrors.imageUrl ? "inspiration-image-error" : undefined} className={fieldErrors.imageUrl ? "is-invalid" : undefined} />
+                    {fieldErrors.imageUrl && <p id="inspiration-image-error" className="inspiration-field-error">{fieldErrors.imageUrl}</p>}
                   </div>
                   <div className="inspiration-field">
                     <label htmlFor="inspiration-difficulty">Difficulty <span>· optional</span></label>

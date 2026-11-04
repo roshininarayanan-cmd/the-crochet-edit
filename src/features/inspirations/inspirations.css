@@ -161,6 +161,9 @@
 .inspiration-field textarea { min-height: 145px; resize: vertical; line-height: 1.6; }
 .inspiration-field input::placeholder, .inspiration-field textarea::placeholder { color: #9a9b92; }
 .inspiration-field :is(input, select, textarea):focus { border-color: #a38bb4; box-shadow: 0 0 0 3px rgba(201,181,217,.22); outline: none; }
+.inspiration-field :is(input, select, textarea).is-invalid { border-color: #bc8178; background: #fffaf8; }
+.inspiration-field :is(input, select, textarea).is-invalid:focus { border-color: #a56d65; box-shadow: 0 0 0 3px rgba(188,129,120,.16); }
+.inspiration-field-error { margin: -2px 0 0; color: #804b42; font-size: 12px; line-height: 1.45; }
 .inspiration-form-error { border-radius: 12px; padding: 12px 14px; background: #f8ece8; color: #804b42; font-size: 13px; line-height: 1.5; }
 .inspiration-form-actions { display: flex; gap: 12px; flex-wrap: wrap; padding-top: 6px; }
 .inspiration-form-load { min-height: 350px; }

@@ -23,7 +23,10 @@ function optionalUrl(body: Record<string, unknown>, key: string): string | null 
     const url = new URL(value);
     if (!["http:", "https:"].includes(url.protocol) || url.username || url.password) throw new Error();
     return url.href;
-  } catch { throw new InputError(`Use a complete http:// or https:// URL for ${key === "imageUrl" ? "the image" : "the pattern"}.`); }
+  } catch {
+    const label = key === "imageUrl" ? "image" : "pattern";
+    throw new InputError(`Please enter a valid ${label} URL beginning with http:// or https://.`);
+  }
 }
 export function parseInspirationInput(body: unknown): Required<InspirationInput> {
   if (!body || typeof body !== "object" || Array.isArray(body)) throw new InputError("Please provide inspiration details.");
