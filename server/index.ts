@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { createServer as createViteServer } from "vite";
 import { db } from "./db";
 import { requireLibraryOwner } from "./data-ownership";
+import { createLibraryRouter } from "./inspirations";
 import { users } from "../shared/schema";
 import { CLERK_PROXY_PATH, clerkProxyMiddleware, getClerkProxyHost } from "./middlewares/clerkProxyMiddleware";
 
@@ -71,8 +72,8 @@ app.post("/api/auth/sync", async (req, res) => {
   }
 });
 
-// No categories/inspirations CRUD endpoints exist in Feature 2.
 app.use(["/api/categories", "/api/inspirations"], requireLibraryOwner);
+app.use("/api", createLibraryRouter());
 app.use("/api", (_request, response) => {
   response.status(404).json({ error: "Not found." });
 });

@@ -27,6 +27,7 @@ export const inspirations = pgTable("inspirations", {
   title: text("title").notNull(),
   patternUrl: text("pattern_url"),
   imageKey: text("image_key"),
+  imageUrl: text("image_url"),
   difficulty: text("difficulty", { enum: ["Beginner", "Intermediate", "Advanced"] }),
   notes: text("notes"),
   status: text("status", { enum: ["Want to Make", "In Progress", "Completed"] })

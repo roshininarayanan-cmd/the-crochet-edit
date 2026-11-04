@@ -41,6 +41,7 @@ categories; no shared or automatic category records are seeded in this feature.
 | title | text | Required |
 | pattern_url | text | Optional |
 | image_key | text | Optional storage reference; no upload feature yet |
+| image_url | text | Optional external HTTP(S) image URL, added for Feature 3; distinct from image_key |
 | difficulty | text | Optional; Beginner, Intermediate, or Advanced |
 | notes | text | Optional |
 | status | text | Required; Want to Make, In Progress, or Completed; defaults to Want to Make |
@@ -79,9 +80,10 @@ from request parameters, query strings, or JSON bodies.
   predicates for future backend queries.
 - `requireCategory(id)` and `requireInspiration(id)`: owner-scoped authorization
   checks. Both a missing record and someone else's record return the same 404.
-- The future `/api/categories` and `/api/inspirations` namespaces require a
-  session now, but expose **no CRUD routes**. Signed-out requests receive 401;
-  authenticated requests receive 404 until those features are implemented.
+- Feature 3 now exposes authenticated inspiration CRUD routes. All record
+  queries and mutations include the verified user's ownership predicate.
+  Category choices are private to the user, with the six PLAN.md defaults
+  inserted idempotently; no category-management routes are exposed.
 
 Future resource handlers must use this authenticated ownership scope for every
 query, call the ownership checks for record IDs, and set write ownership from
@@ -95,6 +97,7 @@ RLS. Direct SQL/admin access is trusted and can inspect all users' records.
 ```bash
 npm run db:push
 npm run test:datamodel
+npm run test:crud
 npm run typecheck
 npm run build
 ```
@@ -109,5 +112,6 @@ Replit's Database tool. Administrative table browsing is not a user-facing API
 and does not apply app-user filters.
 
 Do not add schema commands to production build/startup. Nothing in this feature
-publishes or modifies the production database. No gallery, category interface,
-CRUD, stars table, favorites, search, dashboard, or uploads are implemented.
+publishes or modifies the production database. Feature 3 adds a gallery,
+inspiration forms/details, and inspiration CRUD, but no category management,
+stars table, favorites, search, dashboard, or uploads.

@@ -8,7 +8,8 @@
     "start": "NODE_ENV=production tsx server/index.ts",
     "db:push": "drizzle-kit push",
     "typecheck": "tsc --noEmit",
-    "test:datamodel": "tsx --test server/tests/data-model.test.ts"
+    "test:datamodel": "tsx --test server/tests/data-model.test.ts",
+    "test:crud": "tsx --test server/tests/inspirations.test.ts"
   },
   "dependencies": {
     "@clerk/express": "^2.1.87",
