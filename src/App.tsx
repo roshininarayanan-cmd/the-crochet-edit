@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import {
   ClerkProvider,
   SignIn,
@@ -12,6 +12,7 @@ import { Link, Redirect, Route, Router as WouterRouter, Switch, useLocation } fr
 import YarnIllustration from "./components/YarnIllustration";
 import { InspirationRoutes } from "./features/inspirations";
 
+const DashboardPage = lazy(() => import("./features/dashboard"));
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 const clerkPubKey = publishableKeyFromHost(
   window.location.hostname,
@@ -145,8 +146,9 @@ function SiteHeader() {
         {isLoaded && isSignedIn && (
           <>
             <Link className="button button-text" href="/inspirations">My collection</Link>
+            <Link className="button button-text" href="/dashboard">Dashboard</Link>
             <Link className="button button-text" href="/favorites">Favorites</Link>
-            {!location.startsWith("/inspirations") && !location.startsWith("/favorites") && <span className="header-note">Your little corner</span>}
+            {!location.startsWith("/inspirations") && !location.startsWith("/favorites") && !location.startsWith("/dashboard") && <span className="header-note">Your little corner</span>}
             <button
               className="button button-text"
               type="button"
@@ -158,6 +160,17 @@ function SiteHeader() {
         )}
       </nav>
     </header>
+  );
+}
+
+function DashboardRoute() {
+  const { isLoaded, isSignedIn } = useUser();
+  if (!isLoaded) return <main className="dashboard-page" aria-label="Loading account" />;
+  if (!isSignedIn) return <Redirect to="/sign-in" />;
+  return (
+    <Suspense fallback={<main className="dashboard-page" aria-label="Loading dashboard" />}>
+      <DashboardPage />
+    </Suspense>
   );
 }
 
@@ -299,6 +312,7 @@ function AppRoutes() {
           <Route path="/welcome" component={WelcomePage} />
           <Route path="/sign-in/*?" component={SignInPage} />
           <Route path="/sign-up/*?" component={SignUpPage} />
+          <Route path="/dashboard" component={DashboardRoute} />
           <Route path="/favorites" component={InspirationRoutes} />
           <Route path="/inspirations" component={InspirationRoutes} />
           <Route path="/inspirations/*" component={InspirationRoutes} />

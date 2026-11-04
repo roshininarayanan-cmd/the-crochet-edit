@@ -217,11 +217,11 @@ button { color: inherit; }
   .note-right { right: 1%; }
 }
 @media (max-width: 520px) {
-  .site-header { height: 64px; width: calc(100% - 36px); }
+  .site-header { height: auto; min-height: 64px; width: calc(100% - 36px); flex-wrap: wrap; gap: 4px; padding: 8px 0; }
   .brand { gap: 8px; }
   .brand-mark, .brand-mark img { width: 30px; height: 30px; }
   .brand-name { font-size: 19px; }
-  .header-actions { gap: 2px; }
+  .header-actions { width: 100%; justify-content: center; flex-wrap: wrap; gap: 2px; }
   .button-text { padding: 10px; }
   .button-small { padding: 10px 15px; }
   .hero { width: calc(100% - 44px); padding: 14px 0 15px; min-height: 0; gap: 8px; }

@@ -1,7 +1,8 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
-import { and, asc, desc, eq, exists } from "drizzle-orm";
+import { and, asc, count, desc, eq, exists } from "drizzle-orm";
 import { categories, inspirations, stars, users } from "../shared/schema";
 import type { Difficulty, InspirationInput } from "../shared/inspiration-contract";
+import type { DashboardSummary } from "../shared/dashboard-contract";
 import { db } from "./db";
 import { dataOwnership, DataOwnershipError } from "./data-ownership";
 
@@ -112,6 +113,37 @@ export function createLibraryRouter(connection: Connection = db) {
       .innerJoin(categories, and(eq(inspirations.categoryId, categories.id), eq(inspirations.userId, categories.userId)))
       .where(and(eq(stars.userId, scope.userId), scope.inspirationFilter))
       .orderBy(desc(stars.createdAt), desc(inspirations.createdAt)));
+  }));
+  router.get("/dashboard", handle(async (req, res) => {
+    const scope = dataOwnership(req, connection);
+    const [inspirationTotals] = await connection.select({ total: count() }).from(inspirations)
+      .where(scope.inspirationFilter);
+    const [starTotals] = await connection.select({ total: count() }).from(stars)
+      .innerJoin(inspirations, and(
+        eq(stars.inspirationId, inspirations.id),
+        eq(stars.userId, inspirations.userId),
+      ))
+      .where(and(eq(stars.userId, scope.userId), scope.inspirationFilter));
+    const categoryCounts = await connection.select({
+      categoryId: categories.id,
+      categoryName: categories.name,
+      inspirationCount: count(inspirations.id),
+    })
+      .from(categories)
+      .leftJoin(inspirations, and(
+        eq(inspirations.categoryId, categories.id),
+        eq(inspirations.userId, scope.userId),
+      ))
+      .where(scope.categoryFilter)
+      .groupBy(categories.id, categories.name)
+      .orderBy(asc(categories.name));
+    const summary: DashboardSummary = {
+      totalInspirations: inspirationTotals.total,
+      starredInspirations: starTotals.total,
+      categoriesUsed: categoryCounts.filter((category) => category.inspirationCount > 0).length,
+      categoryCounts,
+    };
+    res.json(summary);
   }));
   router.get("/inspirations", handle(async (req, res) => {
     const scope = dataOwnership(req, connection);

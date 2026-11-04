@@ -1,5 +1,7 @@
 import type { CategoryOption, InspirationInput, InspirationRecord } from "../../shared/inspiration-contract";
+import type { DashboardSummary } from "../../shared/dashboard-contract";
 export type { CategoryOption, InspirationInput, InspirationRecord } from "../../shared/inspiration-contract";
+export type { DashboardCategoryCount, DashboardSummary } from "../../shared/dashboard-contract";
 
 export class LibraryApiError extends Error {
   constructor(message: string, public readonly status: number) { super(message); }
@@ -25,6 +27,7 @@ export async function getCategories(): Promise<CategoryOption[]> {
 }
 export const listInspirations = () => request<InspirationRecord[]>("/api/inspirations");
 export const listFavorites = () => request<InspirationRecord[]>("/api/favorites");
+export const getDashboardSummary = () => request<DashboardSummary>("/api/dashboard");
 export const getInspiration = (id: string) =>
   request<InspirationRecord>(`/api/inspirations/${encodeURIComponent(id)}`);
 export const starInspiration = (id: string) =>
