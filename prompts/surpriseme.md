@@ -71,3 +71,5 @@ Do not write automated tests yet. I will complete my assignment's required autom
 6. Prompt Documentation
 
 Create prompts/surpriseme.md and save this entire prompt inside it.
+
+Also include it on the main welcome screen under "welcome roshini" after you log in
