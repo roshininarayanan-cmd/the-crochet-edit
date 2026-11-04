@@ -465,7 +465,7 @@ function InspirationForm({ editing }: { editing: boolean }) {
       const saved = editing && id
         ? await updateInspiration(id, input)
         : await createInspiration(input);
-      setLocation(`/inspirations/${encodeURIComponent(saved.id)}`);
+      setLocation(editing ? `/inspirations/${encodeURIComponent(saved.id)}` : "/inspirations");
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "We couldn’t save your idea. Please try again.";
       const field = fieldForServerError(message);
