@@ -50,3 +50,22 @@ Save this entire prompt in `prompts/test-data-isolation.md`.
 - Do not ask me to use Shell.
 
 When the test is visibly failing, explain why and tell me where to take my screenshot.
+
+I've captured my screenshot of the failing Data Isolation test.
+
+Now please:
+
+1. Restore the original secure authorization logic and completely remove the deliberate bug.
+2. Run the same automated Data Isolation test again.
+3. Verify that all test assertions PASS.
+4. Display the successful test result clearly so I can capture my green screenshot.
+5. Verify that the existing application still works.
+6. Confirm there are no deliberate bugs remaining in the code.
+7. Add this follow-up prompt to `prompts/test-data-isolation.md` so my AI development process is documented.
+
+Please also explain in plain English:
+- What the test checks.
+- Why it failed when the authorization check was removed.
+- What realistic code change could make it fail in the future.
+
+Keep all changes on `test/data-isolation`. Do not push or merge anything yet. Do not ask me to use Shell.

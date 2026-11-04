@@ -7,14 +7,6 @@ import { categories, inspirations, users } from "../../shared/schema";
 import { db, pool } from "../db";
 import { createLibraryRouter } from "../inspirations";
 
-/*
- * Red-stage demonstration:
- * DATA_ISOLATION_MUTATION=remove-list-ownership npm run test:data-isolation
- * mounts an intentionally unfiltered list handler only on this loopback,
- * rollback-only fixture server. The production router is never modified.
- */
-const removeListOwnershipForMutation = process.env.DATA_ISOLATION_MUTATION === "remove-list-ownership";
-
 test("Test 1: Data Isolation", async (t) => {
   const suffix = randomUUID();
   const userA = `isolation-a-${suffix}`;
@@ -50,17 +42,6 @@ test("Test 1: Data Isolation", async (t) => {
           next();
         });
 
-        if (removeListOwnershipForMutation) {
-          // Deliberately models a missing owner predicate for the red run.
-          // This route is not mounted by server/index.ts or exposed in Preview.
-          app.get("/api/inspirations", async (_req, res) => {
-            const rows = await tx.select({
-              id: inspirations.id,
-              title: inspirations.title,
-            }).from(inspirations);
-            res.json(rows);
-          });
-        }
         app.use("/api", createLibraryRouter(tx));
 
         const server = app.listen(0, "127.0.0.1");
