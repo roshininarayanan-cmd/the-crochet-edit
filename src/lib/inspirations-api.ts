@@ -24,8 +24,13 @@ export async function getCategories(): Promise<CategoryOption[]> {
   return request("/api/categories");
 }
 export const listInspirations = () => request<InspirationRecord[]>("/api/inspirations");
+export const listFavorites = () => request<InspirationRecord[]>("/api/favorites");
 export const getInspiration = (id: string) =>
   request<InspirationRecord>(`/api/inspirations/${encodeURIComponent(id)}`);
+export const starInspiration = (id: string) =>
+  request<void>(`/api/inspirations/${encodeURIComponent(id)}/star`, { method: "POST" });
+export const unstarInspiration = (id: string) =>
+  request<void>(`/api/inspirations/${encodeURIComponent(id)}/star`, { method: "DELETE" });
 export const createInspiration = (input: InspirationInput) =>
   request<InspirationRecord>("/api/inspirations", { method: "POST", body: JSON.stringify(input) });
 export const updateInspiration = (id: string, input: InspirationInput) =>

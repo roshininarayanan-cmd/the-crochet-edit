@@ -46,9 +46,21 @@ export const inspirations = pgTable("inspirations", {
   index("inspirations_category_owner_idx").on(table.categoryId, table.userId),
 ]);
 
+export const stars = pgTable("stars", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").notNull().references(() => users.id, { onDelete: "cascade" }),
+  inspirationId: uuid("inspiration_id").notNull().references(() => inspirations.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  unique("stars_user_inspiration_unique").on(table.userId, table.inspirationId),
+  index("stars_user_idx").on(table.userId),
+  index("stars_inspiration_idx").on(table.inspirationId),
+]);
+
 export const usersRelations = relations(users, ({ many }) => ({
   categories: many(categories),
   inspirations: many(inspirations),
+  stars: many(stars),
 }));
 
 export const categoriesRelations = relations(categories, ({ one, many }) => ({
@@ -56,13 +68,23 @@ export const categoriesRelations = relations(categories, ({ one, many }) => ({
   inspirations: many(inspirations),
 }));
 
-export const inspirationsRelations = relations(inspirations, ({ one }) => ({
+export const inspirationsRelations = relations(inspirations, ({ one, many }) => ({
   user: one(users, { fields: [inspirations.userId], references: [users.id] }),
   category: one(categories, {
     fields: [inspirations.categoryId, inspirations.userId],
     references: [categories.id, categories.userId],
   }),
+  stars: many(stars),
+}));
+
+export const starsRelations = relations(stars, ({ one }) => ({
+  user: one(users, { fields: [stars.userId], references: [users.id] }),
+  inspiration: one(inspirations, {
+    fields: [stars.inspirationId],
+    references: [inspirations.id],
+  }),
 }));
 
 export type Category = typeof categories.$inferSelect;
 export type Inspiration = typeof inspirations.$inferSelect;
+export type Star = typeof stars.$inferSelect;

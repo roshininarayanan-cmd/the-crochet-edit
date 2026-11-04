@@ -1,6 +1,6 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
-import { and, asc, desc, eq } from "drizzle-orm";
-import { categories, inspirations, users } from "../shared/schema";
+import { and, asc, desc, eq, exists } from "drizzle-orm";
+import { categories, inspirations, stars, users } from "../shared/schema";
 import type { Difficulty, InspirationInput } from "../shared/inspiration-contract";
 import { db } from "./db";
 import { dataOwnership, DataOwnershipError } from "./data-ownership";
@@ -47,13 +47,17 @@ export function parseInspirationInput(body: unknown): Required<InspirationInput>
   };
 }
 
-const selection = {
-  id: inspirations.id, title: inspirations.title,
-  categoryId: inspirations.categoryId, categoryName: categories.name,
-  patternUrl: inspirations.patternUrl, imageUrl: inspirations.imageUrl,
-  difficulty: inspirations.difficulty, notes: inspirations.notes,
-  createdAt: inspirations.createdAt, updatedAt: inspirations.updatedAt,
-};
+function inspirationSelection(userId: string, connection: Connection) {
+  return {
+    id: inspirations.id, title: inspirations.title,
+    categoryId: inspirations.categoryId, categoryName: categories.name,
+    patternUrl: inspirations.patternUrl, imageUrl: inspirations.imageUrl,
+    difficulty: inspirations.difficulty, notes: inspirations.notes,
+    isStarred: exists(connection.select({ id: stars.id }).from(stars)
+      .where(and(eq(stars.userId, userId), eq(stars.inspirationId, inspirations.id)))),
+    createdAt: inspirations.createdAt, updatedAt: inspirations.updatedAt,
+  };
+}
 
 export function createLibraryRouter(connection: Connection = db) {
   const router = Router();
@@ -80,7 +84,7 @@ export function createLibraryRouter(connection: Connection = db) {
   };
   const findOwned = async (req: Request, id: string) => {
     const scope = dataOwnership(req, connection);
-    const [row] = await connection.select(selection).from(inspirations)
+    const [row] = await connection.select(inspirationSelection(scope.userId, connection)).from(inspirations)
       .innerJoin(categories, and(eq(inspirations.categoryId, categories.id), eq(inspirations.userId, categories.userId)))
       .where(and(scope.inspirationFilter, eq(inspirations.id, id))).limit(1);
     if (!row) throw new DataOwnershipError(404);
@@ -100,15 +104,40 @@ export function createLibraryRouter(connection: Connection = db) {
     res.json(await connection.select({ id: categories.id, name: categories.name })
       .from(categories).where(scope.categoryFilter).orderBy(asc(categories.name)));
   }));
+  router.get("/favorites", handle(async (req, res) => {
+    const scope = dataOwnership(req, connection);
+    res.json(await connection.select(inspirationSelection(scope.userId, connection))
+      .from(stars)
+      .innerJoin(inspirations, and(eq(stars.inspirationId, inspirations.id), eq(stars.userId, inspirations.userId)))
+      .innerJoin(categories, and(eq(inspirations.categoryId, categories.id), eq(inspirations.userId, categories.userId)))
+      .where(and(eq(stars.userId, scope.userId), scope.inspirationFilter))
+      .orderBy(desc(stars.createdAt), desc(inspirations.createdAt)));
+  }));
   router.get("/inspirations", handle(async (req, res) => {
     const scope = dataOwnership(req, connection);
-    res.json(await connection.select(selection).from(inspirations)
+    res.json(await connection.select(inspirationSelection(scope.userId, connection)).from(inspirations)
       .innerJoin(categories, and(eq(inspirations.categoryId, categories.id), eq(inspirations.userId, categories.userId)))
       .where(scope.inspirationFilter).orderBy(desc(inspirations.createdAt), desc(inspirations.id)));
   }));
   router.get("/inspirations/:id", handle(async (req, res) => {
     dataOwnership(req, connection);
     res.json(await findOwned(req, requireId(req)));
+  }));
+  router.post("/inspirations/:id/star", handle(async (req, res) => {
+    const scope = dataOwnership(req, connection);
+    const id = requireId(req);
+    await scope.requireInspiration(id);
+    await connection.insert(stars).values({ userId: scope.userId, inspirationId: id })
+      .onConflictDoNothing({ target: [stars.userId, stars.inspirationId] });
+    res.status(204).end();
+  }));
+  router.delete("/inspirations/:id/star", handle(async (req, res) => {
+    const scope = dataOwnership(req, connection);
+    const id = requireId(req);
+    await scope.requireInspiration(id);
+    await connection.delete(stars)
+      .where(and(eq(stars.userId, scope.userId), eq(stars.inspirationId, id)));
+    res.status(204).end();
   }));
   router.post("/inspirations", handle(async (req, res) => {
     const scope = dataOwnership(req, connection);

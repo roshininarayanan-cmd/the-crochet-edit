@@ -6,9 +6,12 @@ import {
   deleteInspiration,
   getCategories,
   getInspiration,
+  listFavorites,
   LibraryApiError,
   listInspirations,
+  starInspiration,
   updateInspiration,
+  unstarInspiration,
   type CategoryOption,
   type InspirationInput,
   type InspirationRecord,
@@ -154,30 +157,70 @@ function RetryState({ message, onRetry }: { message: string; onRetry: () => void
   );
 }
 
-function GalleryPage() {
+function EmptyFavoritesState() {
+  return (
+    <section className="inspiration-state">
+      <div className="inspiration-state-mark" aria-hidden="true">☆</div>
+      <h2>Your favorites are waiting.</h2>
+      <p>Tap the star on any idea in your collection and it’ll be kept here for you.</p>
+      <Link href="/inspirations" className="inspiration-button">Browse your collection <span aria-hidden="true">↗</span></Link>
+    </section>
+  );
+}
+
+function GalleryPage({ favoritesOnly = false }: { favoritesOnly?: boolean }) {
   const [, setLocation] = useLocation();
   const [items, setItems] = useState<InspirationRecord[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [starError, setStarError] = useState<string | null>(null);
+  const [pendingStarIds, setPendingStarIds] = useState<Set<string>>(new Set());
   const [attempt, setAttempt] = useState(0);
+  const starRequestLock = useRef(new Set<string>());
   useEffect(() => {
     let active = true;
     setItems(null);
     setError(null);
-    listInspirations().then((records) => {
+    setStarError(null);
+    (favoritesOnly ? listFavorites() : listInspirations()).then((records) => {
       if (active) setItems(records);
     }).catch((reason: unknown) => {
       if (active) setError(reason instanceof Error ? reason.message : "Please try again in a moment.");
     });
     return () => { active = false; };
-  }, [attempt]);
+  }, [attempt, favoritesOnly]);
+
+  async function toggleStar(item: InspirationRecord) {
+    if (starRequestLock.current.has(item.id)) return;
+    starRequestLock.current.add(item.id);
+    setPendingStarIds((current) => new Set(current).add(item.id));
+    setStarError(null);
+    try {
+      if (item.isStarred) await unstarInspiration(item.id);
+      else await starInspiration(item.id);
+      setItems((current) => {
+        if (!current) return current;
+        if (favoritesOnly && item.isStarred) return current.filter((entry) => entry.id !== item.id);
+        return current.map((entry) => entry.id === item.id ? { ...entry, isStarred: !item.isStarred } : entry);
+      });
+    } catch (reason) {
+      setStarError(reason instanceof Error ? reason.message : "We couldn’t update this favorite. Please try again.");
+    } finally {
+      starRequestLock.current.delete(item.id);
+      setPendingStarIds((current) => {
+        const next = new Set(current);
+        next.delete(item.id);
+        return next;
+      });
+    }
+  }
 
   return (
     <main className="inspiration-area inspiration-library-page">
         <div className="inspiration-inner">
-          <PageTop>THE CROCHET EDIT · YOUR COLLECTION</PageTop>
+          <PageTop>THE CROCHET EDIT · {favoritesOnly ? "YOUR FAVORITES" : "YOUR COLLECTION"}</PageTop>
           <div className="inspiration-heading-row">
             <div className="inspiration-library-heading">
-              <h1 className="inspiration-title">Your collection</h1>
+              <h1 className="inspiration-title">{favoritesOnly ? "Your favorites" : "Your collection"}</h1>
               <div className="inspiration-count">{items ? `${items.length} ${items.length === 1 ? "idea" : "ideas"} gathered` : "Your saved ideas"}</div>
             </div>
             <button type="button" className="inspiration-button small" onClick={() => setLocation("/inspirations/new")}>
@@ -185,16 +228,19 @@ function GalleryPage() {
             </button>
           </div>
 
+          {starError && <div className="inspiration-form-error inspiration-favorite-error" role="alert">{starError}</div>}
           {error && <RetryState message={error} onRetry={() => setAttempt((n) => n + 1)} />}
           {!error && !items && (
-            <div className="inspiration-gallery" aria-label="Loading your collection">
+            <div className="inspiration-gallery" aria-label={favoritesOnly ? "Loading your favorites" : "Loading your collection"}>
               <span className="inspiration-skeleton" /><span className="inspiration-skeleton" />
               <span className="inspiration-skeleton" /><span className="inspiration-skeleton" />
             </div>
           )}
-          {!error && items?.length === 0 && <EmptyState onAdd={() => setLocation("/inspirations/new")} />}
+          {!error && items?.length === 0 && (
+            favoritesOnly ? <EmptyFavoritesState /> : <EmptyState onAdd={() => setLocation("/inspirations/new")} />
+          )}
           {!error && !!items?.length && (
-            <section className="inspiration-gallery" aria-label="Your crochet inspiration">
+            <section className="inspiration-gallery" aria-label={favoritesOnly ? "Your favorite crochet inspiration" : "Your crochet inspiration"}>
               {items.map((item) => (
                 <article key={item.id} className="inspiration-card">
                   <Link href={`/inspirations/${encodeURIComponent(item.id)}`} className="inspiration-card-link" aria-label={`View ${item.title}`}>
@@ -209,6 +255,18 @@ function GalleryPage() {
                       </div>
                     </div>
                   </Link>
+                  <button
+                    type="button"
+                    className={`inspiration-star-button${item.isStarred ? " is-starred" : ""}`}
+                    aria-label={item.isStarred ? `Remove ${item.title} from favorites` : `Add ${item.title} to favorites`}
+                    aria-pressed={item.isStarred}
+                    disabled={pendingStarIds.has(item.id)}
+                    onClick={() => void toggleStar(item)}
+                  >
+                    <svg viewBox="0 0 24 24" aria-hidden="true">
+                      <path d="m12 2.75 2.86 5.8 6.4.93-4.63 4.52 1.09 6.38L12 17.37l-5.72 3.01 1.09-6.38L2.74 9.48l6.4-.93L12 2.75Z" />
+                    </svg>
+                  </button>
                 </article>
               ))}
             </section>
@@ -526,6 +584,7 @@ export function InspirationRoutes() {
   return (
     <Switch>
       <Route path="/inspirations" component={() => <AccountGate Page={GalleryPage} />} />
+      <Route path="/favorites" component={() => <AccountGate Page={() => <GalleryPage favoritesOnly />} />} />
       <Route path="/inspirations/new" component={() => <AccountGate Page={() => <InspirationForm editing={false} />} />} />
       <Route path="/inspirations/:id/edit" component={() => <AccountGate Page={() => <InspirationForm editing />} />} />
       <Route path="/inspirations/:id" component={() => <AccountGate Page={DetailPage} />} />

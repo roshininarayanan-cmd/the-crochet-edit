@@ -1,2 +1,3 @@
 - [Managed Clerk SDK compatibility](clerk-sdk-compatibility.md) — check SDK major compatibility before replacing the prescribed host-aware auth wiring.
 - [Preview verification](preview-verification.md) — a local screenshot does not verify the user's externally forwarded preview.
+- [Favorites ownership and schema](favorites-ownership.md) — keep star ownership checks in the authenticated API; avoid a redundant populated-table constraint that prompts for truncation.
