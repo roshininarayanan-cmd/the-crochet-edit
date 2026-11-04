@@ -9,7 +9,8 @@
     "db:push": "drizzle-kit push",
     "typecheck": "tsc --noEmit",
     "test:datamodel": "tsx --test server/tests/data-model.test.ts",
-    "test:crud": "tsx --test server/tests/inspirations.test.ts"
+    "test:crud": "tsx --test server/tests/inspirations.test.ts",
+    "test:search": "tsx --test src/features/inspirations/gallery-utils.test.ts"
   },
   "dependencies": {
     "@clerk/express": "^2.1.87",
