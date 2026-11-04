@@ -414,6 +414,7 @@ function InspirationForm({ editing }: { editing: boolean }) {
   const [photoFile, setPhotoFile] = useState<File | null>(null);
   const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
   const [photoError, setPhotoError] = useState<string | null>(null);
+  const [photoSelectionInvalid, setPhotoSelectionInvalid] = useState(false);
   const [removeUploadedPhoto, setRemoveUploadedPhoto] = useState(false);
   const [difficulty, setDifficulty] = useState("");
   const [notes, setNotes] = useState("");
@@ -479,15 +480,20 @@ function InspirationForm({ editing }: { editing: boolean }) {
 
     const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
     if (file.size > maxPhotoBytes) {
+      setPhotoFile(null);
       setPhotoError("Photos must be 5 MB or smaller. Please choose a smaller image.");
+      setPhotoSelectionInvalid(true);
       return;
     }
     if (!supportedPhotoTypes.has(file.type.toLowerCase()) && !supportedPhotoExtensions.has(extension)) {
+      setPhotoFile(null);
       setPhotoError("Please choose a JPG, PNG, or WebP photo.");
+      setPhotoSelectionInvalid(true);
       return;
     }
 
     setPhotoError(null);
+    setPhotoSelectionInvalid(false);
     setPhotoFile(file);
     setRemoveUploadedPhoto(false);
     updateField("imageUrl", setImageUrl, "");
@@ -496,6 +502,7 @@ function InspirationForm({ editing }: { editing: boolean }) {
   function handleImageUrlChange(value: string) {
     updateField("imageUrl", setImageUrl, value);
     setPhotoError(null);
+    setPhotoSelectionInvalid(false);
     if (value.trim()) {
       setPhotoFile(null);
       setRemoveUploadedPhoto(Boolean(record?.photoUrl));
@@ -507,6 +514,7 @@ function InspirationForm({ editing }: { editing: boolean }) {
   function removePhoto() {
     setPhotoFile(null);
     setPhotoError(null);
+    setPhotoSelectionInvalid(false);
     setRemoveUploadedPhoto(Boolean(record?.photoUrl));
     updateField("imageUrl", setImageUrl, "");
   }
@@ -514,7 +522,7 @@ function InspirationForm({ editing }: { editing: boolean }) {
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saveLock.current) return;
-    if (photoError) return;
+    if (photoSelectionInvalid) return;
     const errors = validateInspirationForm(title, categoryId, patternUrl, imageUrl, categories ?? []);
     setFieldErrors(errors);
     if (Object.keys(errors).length) {
@@ -553,6 +561,7 @@ function InspirationForm({ editing }: { editing: boolean }) {
         document.getElementById(formFieldIds[field])?.focus();
       } else if (message.toLowerCase().includes("photo")) {
         setPhotoError(message);
+        setPhotoSelectionInvalid(false);
         setSaveError(null);
       } else {
         setSaveError(message);
@@ -634,6 +643,18 @@ function InspirationForm({ editing }: { editing: boolean }) {
                       aria-label="Choose a JPG, PNG, or WebP photo"
                     />
                     {photoError && <p className="inspiration-field-error" role="alert">{photoError}</p>}
+                    {photoSelectionInvalid && (
+                      <button
+                        type="button"
+                        className="inspiration-photo-remove"
+                        onClick={() => {
+                          setPhotoSelectionInvalid(false);
+                          setPhotoError(null);
+                        }}
+                      >
+                        {imageUrl.trim() ? "Keep the image link" : record?.photoUrl ? "Keep the saved photo" : "Continue without a photo"}
+                      </button>
+                    )}
                     {photoPreview && (
                       <div className="inspiration-upload-preview">
                         <InspirationImage

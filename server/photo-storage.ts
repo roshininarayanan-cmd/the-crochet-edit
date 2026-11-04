@@ -20,7 +20,7 @@ export class InvalidPhotoError extends Error {
   }
 }
 
-const storage = new Client();
+let cachedStorage: Client | null = null;
 const managedPhotoKey = /^users\/([a-f0-9]{64})\/inspirations\/([0-9a-f-]{36})\.(jpg|png|webp)$/i;
 
 function ownerNamespace(userId: string) {
@@ -53,10 +53,13 @@ export async function storeUserPhoto(userId: string, bytes: Buffer) {
   if (!format) throw new InvalidPhotoError();
 
   const key = `users/${ownerNamespace(userId)}/inspirations/${randomUUID()}.${format.extension}`;
+  const storage = cachedStorage ?? new Client();
   try {
     const result = await storage.uploadFromBytes(key, bytes, { compress: false });
     if (!result.ok) throw new PhotoStorageError();
+    cachedStorage = storage;
   } catch {
+    if (cachedStorage === storage) cachedStorage = null;
     throw new PhotoStorageError();
   }
   return { key, contentType: format.contentType };
@@ -65,6 +68,7 @@ export async function storeUserPhoto(userId: string, bytes: Buffer) {
 export async function readUserPhoto(userId: string, key: string) {
   if (!isOwnedPhotoKey(userId, key)) throw new PhotoStorageError();
 
+  const storage = cachedStorage ?? new Client();
   try {
     const result = await storage.downloadAsBytes(key);
     if (!result.ok) throw new PhotoStorageError();
@@ -72,8 +76,10 @@ export async function readUserPhoto(userId: string, key: string) {
     const bytes = result.value[0];
     const format = getPhotoFormat(bytes);
     if (!format) throw new PhotoStorageError();
+    cachedStorage = storage;
     return { bytes, contentType: format.contentType };
   } catch {
+    if (cachedStorage === storage) cachedStorage = null;
     throw new PhotoStorageError();
   }
 }
@@ -82,10 +88,13 @@ export async function deleteUserPhoto(userId: string, key: string) {
   // Never delete a key that was not generated for this account.
   if (!isOwnedPhotoKey(userId, key)) return;
 
+  const storage = cachedStorage ?? new Client();
   try {
     const result = await storage.delete(key, { ignoreNotFound: true });
     if (!result.ok) throw new PhotoStorageError();
+    cachedStorage = storage;
   } catch {
+    if (cachedStorage === storage) cachedStorage = null;
     throw new PhotoStorageError();
   }
 }
