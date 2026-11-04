@@ -120,10 +120,29 @@ test("Feature 3 HTTP CRUD and two-user privacy", async (t) => {
             assert.equal((await request(userA, "POST", "/inspirations", { ...input, categoryId: categoryB.id })).status, 404);
             assert.equal((await request(userA, "PUT", `/inspirations/${item.id}`, { ...input, categoryId: categoryB.id })).status, 404);
           });
-          await t.test("missing required fields, invalid URLs, and unsupported difficulties are rejected", async () => {
+          await t.test("required fields and invalid pattern URLs are rejected on create and edit", async () => {
+            const invalidFields: Array<[Record<string, unknown>, string]> = [
+              [{ ...input, title: "  " }, "A title is required."],
+              [{ ...input, categoryId: "" }, "Choose a category."],
+              [{ ...input, patternUrl: "javascript:alert(1)" }, "Please enter a valid pattern URL beginning with http:// or https://."],
+              [{ ...input, patternUrl: "not a URL" }, "Please enter a valid pattern URL beginning with http:// or https://."],
+            ];
+            for (const [body, message] of invalidFields) {
+              for (const [method, path] of [
+                ["POST", "/inspirations"],
+                ["PUT", `/inspirations/${item.id}`],
+              ] as const) {
+                const response = await request(userA, method, path, body);
+                assert.equal(response.status, 400);
+                assert.deepEqual(response.data, { error: message });
+              }
+            }
+            const unchanged = await request(userA, "GET", `/inspirations/${item.id}`);
+            assert.equal(unchanged.data.title, input.title);
+            assert.equal(unchanged.data.patternUrl, input.patternUrl);
+          });
+          await t.test("unsupported optional values are rejected", async () => {
             for (const body of [
-              { ...input, title: "  " }, { ...input, categoryId: null },
-              { ...input, patternUrl: "javascript:alert(1)" },
               { ...input, imageUrl: "data:image/svg+xml,bad" },
               { ...input, difficulty: "Expert" }, { ...input, notes: 123 },
             ]) assert.equal((await request(userA, "POST", "/inspirations", body)).status, 400);
