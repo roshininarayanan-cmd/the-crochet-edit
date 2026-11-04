@@ -73,3 +73,11 @@ Do not write automated tests yet. I will complete my assignment's required autom
 Create prompts/progress.md and save this entire prompt inside it.
 
 Update schema.md only if the database structure changes.
+
+Follow-up prompt:
+
+After I edit details, I want to route back to My collection
+
+Follow-up prompt:
+
+Whenever I update Progress, I want it to ask me "Return to My Collection?" Yes or No and for yes, return to my collection, and no, stay on the details page
