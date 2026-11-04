@@ -6,15 +6,18 @@ import {
   deleteInspiration,
   getCategories,
   getInspiration,
+  INSPIRATION_STATUSES,
   listFavorites,
   LibraryApiError,
   listInspirations,
   starInspiration,
+  updateInspirationStatus,
   updateInspiration,
   unstarInspiration,
   type CategoryOption,
   type InspirationInput,
   type InspirationRecord,
+  type InspirationStatus,
 } from "../../lib/inspirations-api";
 import { filterAndSortInspirations, type InspirationSort } from "./gallery-utils";
 import "./inspirations.css";
@@ -122,6 +125,11 @@ function BrokenImageMark({ category }: { category: string }) {
 function CategoryChip({ name }: { name: string }) {
   const colorClass = categoryChipClasses[name] ?? "other";
   return <span className={`inspiration-chip category-chip category-${colorClass}`}>{name}</span>;
+}
+
+function ProjectStatusBadge({ status }: { status: InspirationStatus }) {
+  const statusClass = status.toLowerCase().replace(/\s+/g, "-");
+  return <span className={`inspiration-status-badge status-${statusClass}`}>{status}</span>;
 }
 
 function InspirationImage({
@@ -367,6 +375,7 @@ function GalleryPage({ favoritesOnly = false }: { favoritesOnly?: boolean }) {
                       <div className="inspiration-card-meta">
                         <CategoryChip name={item.categoryName} />
                         {item.difficulty && <span className="inspiration-chip difficulty">{item.difficulty}</span>}
+                        <ProjectStatusBadge status={item.status} />
                       </div>
                     </div>
                   </Link>
@@ -705,7 +714,10 @@ function DetailPage() {
   const [confirmDelete, setConfirmDelete] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [statusSaving, setStatusSaving] = useState(false);
+  const [statusError, setStatusError] = useState<string | null>(null);
   const deleteLock = useRef(false);
+  const statusLock = useRef(false);
   const cancelRef = useRef<HTMLButtonElement>(null);
   const dialogRef = useRef<HTMLElement>(null);
 
@@ -768,6 +780,23 @@ function DetailPage() {
     }
   }
 
+  async function saveStatus(event: ChangeEvent<HTMLSelectElement>) {
+    if (!id || statusLock.current || !record) return;
+    const nextStatus = event.currentTarget.value as InspirationStatus;
+    if (!INSPIRATION_STATUSES.includes(nextStatus)) return;
+    statusLock.current = true;
+    setStatusSaving(true);
+    setStatusError(null);
+    try {
+      setRecord(await updateInspirationStatus(id, nextStatus));
+    } catch (reason) {
+      setStatusError(reason instanceof Error ? reason.message : "We couldn’t update this project status. Please try again.");
+    } finally {
+      statusLock.current = false;
+      setStatusSaving(false);
+    }
+  }
+
   return (
     <main className="inspiration-area">
         <div className="inspiration-inner">
@@ -800,8 +829,24 @@ function DetailPage() {
                 <div className="inspiration-detail-categories">
                   <CategoryChip name={record.categoryName} />
                   {record.difficulty && <span className="inspiration-chip difficulty">{record.difficulty}</span>}
+                  <ProjectStatusBadge status={record.status} />
                 </div>
                 <h1>{record.title}</h1>
+                <div className="inspiration-project-status-control">
+                  <label htmlFor="inspiration-project-status">Project status</label>
+                  <select
+                    id="inspiration-project-status"
+                    value={record.status}
+                    onChange={(event) => void saveStatus(event)}
+                    disabled={statusSaving}
+                    aria-describedby={statusError ? "inspiration-project-status-error" : undefined}
+                    aria-invalid={Boolean(statusError)}
+                  >
+                    {INSPIRATION_STATUSES.map((status) => <option key={status} value={status}>{status}</option>)}
+                  </select>
+                  {statusSaving && <span className="inspiration-status-saving" role="status">Saving status…</span>}
+                  {statusError && <p id="inspiration-project-status-error" className="inspiration-field-error" role="alert">{statusError}</p>}
+                </div>
                 {record.patternUrl && (
                   <a className="inspiration-pattern" href={record.patternUrl} target="_blank" rel="noopener noreferrer">
                     Open original pattern <span aria-hidden="true">↗</span>
