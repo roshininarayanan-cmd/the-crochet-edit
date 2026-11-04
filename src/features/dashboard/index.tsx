@@ -64,7 +64,9 @@ function CategoryTooltip({ active, payload }: { active?: boolean; payload?: Arra
   );
 }
 
-export default function DashboardPage() {
+export default function DashboardPage({ embedded = false }: { embedded?: boolean }) {
+  const Root = embedded ? "div" : "main";
+  const pageClass = embedded ? "dashboard-page dashboard-page-embedded" : "dashboard-page";
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -107,14 +109,14 @@ export default function DashboardPage() {
 
   if (loading && !summary) {
     return (
-      <main className="dashboard-page">
+      <Root className={pageClass}>
         <div className="dashboard-inner"><DashboardSkeleton /></div>
-      </main>
+      </Root>
     );
   }
 
   return (
-    <main className="dashboard-page">
+    <Root className={pageClass}>
       <div className="dashboard-inner">
         <div className="dashboard-topline">
           <span className="dashboard-kicker"><span className="dashboard-kicker-mark" /> YOUR PRIVATE CROCHET NOTEBOOK</span>
@@ -261,6 +263,6 @@ export default function DashboardPage() {
           </>
         )}
       </div>
-    </main>
+    </Root>
   );
 }

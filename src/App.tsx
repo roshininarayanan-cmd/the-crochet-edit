@@ -184,7 +184,7 @@ function HomePage() {
   if (isSignedIn) {
     const firstName = user.firstName?.trim();
     return (
-      <main className="welcome-page">
+      <main className="welcome-page welcome-page-with-dashboard">
         <div className="welcome-orb orb-sage" />
         <div className="welcome-orb orb-pink" />
         <section className="welcome-card">
@@ -199,6 +199,9 @@ function HomePage() {
             <Link className="button button-primary" href="/inspirations">Open my collection <span aria-hidden="true">↗</span></Link>
           </div>
         </section>
+        <Suspense fallback={<div className="dashboard-page dashboard-page-embedded" aria-label="Loading dashboard" />}>
+          <DashboardPage embedded />
+        </Suspense>
       </main>
     );
   }
