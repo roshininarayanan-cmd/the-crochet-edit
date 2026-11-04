@@ -8,10 +8,14 @@ export class LibraryApiError extends Error {
 }
 
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
+  const isFormData = options?.body instanceof FormData;
   const response = await fetch(path, {
     ...options,
     credentials: "include",
-    headers: { "Content-Type": "application/json", ...options?.headers },
+    headers: {
+      ...(isFormData ? {} : { "Content-Type": "application/json" }),
+      ...options?.headers,
+    },
   });
   if (!response.ok) {
     const body = await response.json().catch(() => ({})) as { error?: string };
@@ -34,11 +38,33 @@ export const starInspiration = (id: string) =>
   request<void>(`/api/inspirations/${encodeURIComponent(id)}/star`, { method: "POST" });
 export const unstarInspiration = (id: string) =>
   request<void>(`/api/inspirations/${encodeURIComponent(id)}/star`, { method: "DELETE" });
-export const createInspiration = (input: InspirationInput) =>
-  request<InspirationRecord>("/api/inspirations", { method: "POST", body: JSON.stringify(input) });
-export const updateInspiration = (id: string, input: InspirationInput) =>
+
+function inspirationFormData(input: InspirationInput, photo?: File, removeUploadedPhoto = false) {
+  const form = new FormData();
+  for (const [key, value] of Object.entries(input)) {
+    form.append(key, value == null ? "" : String(value));
+  }
+  if (photo) form.append("photo", photo);
+  if (removeUploadedPhoto) form.append("removeUploadedPhoto", "true");
+  return form;
+}
+
+export const createInspiration = (input: InspirationInput, photo?: File) =>
+  request<InspirationRecord>("/api/inspirations", {
+    method: "POST",
+    body: photo ? inspirationFormData(input, photo) : JSON.stringify(input),
+  });
+export const updateInspiration = (
+  id: string,
+  input: InspirationInput,
+  photo?: File,
+  removeUploadedPhoto = false,
+) =>
   request<InspirationRecord>(`/api/inspirations/${encodeURIComponent(id)}`, {
-    method: "PUT", body: JSON.stringify(input),
+    method: "PUT",
+    body: photo || removeUploadedPhoto
+      ? inspirationFormData(input, photo, removeUploadedPhoto)
+      : JSON.stringify(input),
   });
 export const deleteInspiration = (id: string) =>
   request<void>(`/api/inspirations/${encodeURIComponent(id)}`, { method: "DELETE" });

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState, type ComponentType, type FormEvent, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ChangeEvent, type ComponentType, type FormEvent, type ReactNode } from "react";
 import { Link, Redirect, Route, Switch, useLocation, useParams } from "wouter";
 import { useUser } from "@clerk/react";
 import {
@@ -20,6 +20,9 @@ import { filterAndSortInspirations, type InspirationSort } from "./gallery-utils
 import "./inspirations.css";
 
 const difficulties = ["Beginner", "Intermediate", "Advanced"] as const;
+const maxPhotoBytes = 5 * 1024 * 1024;
+const supportedPhotoTypes = new Set(["image/jpeg", "image/jpg", "image/png", "image/webp"]);
+const supportedPhotoExtensions = new Set(["jpg", "jpeg", "png", "webp"]);
 type InspirationFormField = "title" | "categoryId" | "patternUrl" | "imageUrl";
 type InspirationFormErrors = Partial<Record<InspirationFormField, string>>;
 const formFieldIds: Record<InspirationFormField, string> = {
@@ -121,13 +124,25 @@ function CategoryChip({ name }: { name: string }) {
   return <span className={`inspiration-chip category-chip category-${colorClass}`}>{name}</span>;
 }
 
-function InspirationImage({ src, title, category, detail = false }: { src: string | null; title: string; category: string; detail?: boolean }) {
+function InspirationImage({
+  src,
+  title,
+  category,
+  detail = false,
+  preserveAspectRatio = false,
+}: {
+  src: string | null;
+  title: string;
+  category: string;
+  detail?: boolean;
+  preserveAspectRatio?: boolean;
+}) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [src]);
   if (!src || failed) return <BrokenImageMark category={category} />;
   return (
     <img
-      className={detail ? "" : "inspiration-image"}
+      className={`${detail ? "" : "inspiration-image"}${preserveAspectRatio ? " inspiration-image-preserve" : ""}`}
       src={src}
       alt={title}
       referrerPolicy="no-referrer"
@@ -340,7 +355,12 @@ function GalleryPage({ favoritesOnly = false }: { favoritesOnly?: boolean }) {
                 <article key={item.id} className="inspiration-card">
                   <Link href={`/inspirations/${encodeURIComponent(item.id)}`} className="inspiration-card-link" aria-label={`View ${item.title}`}>
                     <div className="inspiration-image-wrap">
-                      <InspirationImage src={item.imageUrl} title={item.title} category={item.categoryName} />
+                      <InspirationImage
+                        src={item.photoUrl ?? item.imageUrl}
+                        title={item.title}
+                        category={item.categoryName}
+                        preserveAspectRatio={Boolean(item.photoUrl)}
+                      />
                     </div>
                     <div className="inspiration-card-body">
                       <h2 className="inspiration-card-title">{item.title}</h2>
@@ -391,12 +411,28 @@ function InspirationForm({ editing }: { editing: boolean }) {
   const [categoryId, setCategoryId] = useState("");
   const [patternUrl, setPatternUrl] = useState("");
   const [imageUrl, setImageUrl] = useState("");
+  const [photoFile, setPhotoFile] = useState<File | null>(null);
+  const [photoPreviewUrl, setPhotoPreviewUrl] = useState<string | null>(null);
+  const [photoError, setPhotoError] = useState<string | null>(null);
+  const [photoSelectionInvalid, setPhotoSelectionInvalid] = useState(false);
+  const [removeUploadedPhoto, setRemoveUploadedPhoto] = useState(false);
   const [difficulty, setDifficulty] = useState("");
   const [notes, setNotes] = useState("");
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<InspirationFormErrors>({});
   const saveLock = useRef(false);
+  const photoInputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (!photoFile) {
+      setPhotoPreviewUrl(null);
+      return;
+    }
+    const preview = URL.createObjectURL(photoFile);
+    setPhotoPreviewUrl(preview);
+    return () => URL.revokeObjectURL(preview);
+  }, [photoFile]);
 
   useEffect(() => {
     let active = true;
@@ -414,6 +450,9 @@ function InspirationForm({ editing }: { editing: boolean }) {
         setCategoryId(item.categoryId);
         setPatternUrl(item.patternUrl ?? "");
         setImageUrl(item.imageUrl ?? "");
+        setPhotoFile(null);
+        setPhotoError(null);
+        setRemoveUploadedPhoto(false);
         setDifficulty(item.difficulty ?? "");
         setNotes(item.notes ?? "");
       }
@@ -434,9 +473,56 @@ function InspirationForm({ editing }: { editing: boolean }) {
     setSaveError(null);
   }
 
+  function handlePhotoSelection(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.currentTarget.files?.[0];
+    event.currentTarget.value = "";
+    if (!file) return;
+
+    const extension = file.name.split(".").pop()?.toLowerCase() ?? "";
+    if (file.size > maxPhotoBytes) {
+      setPhotoFile(null);
+      setPhotoError("Photos must be 5 MB or smaller. Please choose a smaller image.");
+      setPhotoSelectionInvalid(true);
+      return;
+    }
+    if (!supportedPhotoTypes.has(file.type.toLowerCase()) && !supportedPhotoExtensions.has(extension)) {
+      setPhotoFile(null);
+      setPhotoError("Please choose a JPG, PNG, or WebP photo.");
+      setPhotoSelectionInvalid(true);
+      return;
+    }
+
+    setPhotoError(null);
+    setPhotoSelectionInvalid(false);
+    setPhotoFile(file);
+    setRemoveUploadedPhoto(false);
+    updateField("imageUrl", setImageUrl, "");
+  }
+
+  function handleImageUrlChange(value: string) {
+    updateField("imageUrl", setImageUrl, value);
+    setPhotoError(null);
+    setPhotoSelectionInvalid(false);
+    if (value.trim()) {
+      setPhotoFile(null);
+      setRemoveUploadedPhoto(Boolean(record?.photoUrl));
+    } else if (record?.photoUrl) {
+      setRemoveUploadedPhoto(false);
+    }
+  }
+
+  function removePhoto() {
+    setPhotoFile(null);
+    setPhotoError(null);
+    setPhotoSelectionInvalid(false);
+    setRemoveUploadedPhoto(Boolean(record?.photoUrl));
+    updateField("imageUrl", setImageUrl, "");
+  }
+
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saveLock.current) return;
+    if (photoSelectionInvalid) return;
     const errors = validateInspirationForm(title, categoryId, patternUrl, imageUrl, categories ?? []);
     setFieldErrors(errors);
     if (Object.keys(errors).length) {
@@ -463,8 +549,8 @@ function InspirationForm({ editing }: { editing: boolean }) {
     };
     try {
       const saved = editing && id
-        ? await updateInspiration(id, input)
-        : await createInspiration(input);
+        ? await updateInspiration(id, input, photoFile ?? undefined, removeUploadedPhoto)
+        : await createInspiration(input, photoFile ?? undefined);
       setLocation(editing ? `/inspirations/${encodeURIComponent(saved.id)}` : "/inspirations");
     } catch (reason) {
       const message = reason instanceof Error ? reason.message : "We couldn’t save your idea. Please try again.";
@@ -473,6 +559,10 @@ function InspirationForm({ editing }: { editing: boolean }) {
         setFieldErrors((current) => ({ ...current, [field]: message }));
         setSaveError("Please check the highlighted field and try again.");
         document.getElementById(formFieldIds[field])?.focus();
+      } else if (message.toLowerCase().includes("photo")) {
+        setPhotoError(message);
+        setPhotoSelectionInvalid(false);
+        setSaveError(null);
       } else {
         setSaveError(message);
       }
@@ -481,6 +571,10 @@ function InspirationForm({ editing }: { editing: boolean }) {
       setSaving(false);
     }
   }
+
+  const photoPreview = photoPreviewUrl
+    ?? (removeUploadedPhoto ? null : record?.photoUrl)
+    ?? (imageUrl.trim() || null);
 
   return (
     <main className="inspiration-area">
@@ -517,8 +611,60 @@ function InspirationForm({ editing }: { editing: boolean }) {
                   </div>
                   <div className="inspiration-field">
                     <label htmlFor="inspiration-image">Image link <span>· optional</span></label>
-                    <input id="inspiration-image" name="imageUrl" type="url" value={imageUrl} onChange={(event) => updateField("imageUrl", setImageUrl, event.target.value)} placeholder="https://…" aria-invalid={Boolean(fieldErrors.imageUrl)} aria-describedby={fieldErrors.imageUrl ? "inspiration-image-error" : undefined} className={fieldErrors.imageUrl ? "is-invalid" : undefined} />
+                    <input id="inspiration-image" name="imageUrl" type="url" value={imageUrl} onChange={(event) => handleImageUrlChange(event.target.value)} placeholder="https://…" aria-invalid={Boolean(fieldErrors.imageUrl)} aria-describedby={fieldErrors.imageUrl ? "inspiration-image-error" : undefined} className={fieldErrors.imageUrl ? "is-invalid" : undefined} />
                     {fieldErrors.imageUrl && <p id="inspiration-image-error" className="inspiration-field-error">{fieldErrors.imageUrl}</p>}
+                  </div>
+                  <div className="inspiration-field">
+                    <label>Upload a photo <span>· optional</span></label>
+                    <div className="inspiration-photo-actions">
+                      <button
+                        type="button"
+                        className="inspiration-button secondary small"
+                        onClick={() => photoInputRef.current?.click()}
+                        disabled={saving}
+                      >
+                        Upload Photo
+                      </button>
+                      {photoPreview && (
+                        <button type="button" className="inspiration-photo-remove" onClick={removePhoto} disabled={saving}>
+                          Remove photo
+                        </button>
+                      )}
+                      <span className="inspiration-photo-filename">
+                        {photoFile?.name ?? (record?.photoUrl && !removeUploadedPhoto ? "Saved photo" : "JPG, PNG, or WebP · up to 5 MB")}
+                      </span>
+                    </div>
+                    <input
+                      ref={photoInputRef}
+                      className="inspiration-photo-input"
+                      type="file"
+                      accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                      onChange={handlePhotoSelection}
+                      aria-label="Choose a JPG, PNG, or WebP photo"
+                    />
+                    {photoError && <p className="inspiration-field-error" role="alert">{photoError}</p>}
+                    {photoSelectionInvalid && (
+                      <button
+                        type="button"
+                        className="inspiration-photo-remove"
+                        onClick={() => {
+                          setPhotoSelectionInvalid(false);
+                          setPhotoError(null);
+                        }}
+                      >
+                        {imageUrl.trim() ? "Keep the image link" : record?.photoUrl ? "Keep the saved photo" : "Continue without a photo"}
+                      </button>
+                    )}
+                    {photoPreview && (
+                      <div className="inspiration-upload-preview">
+                        <InspirationImage
+                          src={photoPreview}
+                          title="Selected inspiration photo preview"
+                          category={record?.categoryName ?? categories.find((category) => category.id === categoryId)?.name ?? "Accessories"}
+                          preserveAspectRatio={Boolean(photoFile || record?.photoUrl)}
+                        />
+                      </div>
+                    )}
                   </div>
                   <div className="inspiration-field">
                     <label htmlFor="inspiration-difficulty">Difficulty <span>· optional</span></label>
@@ -641,7 +787,15 @@ function DetailPage() {
             </div>
           ) : (
             <div className="inspiration-detail-layout">
-              <div className="inspiration-detail-visual"><InspirationImage src={record.imageUrl} title={record.title} category={record.categoryName} detail /></div>
+               <div className="inspiration-detail-visual">
+                 <InspirationImage
+                   src={record.photoUrl ?? record.imageUrl}
+                   title={record.title}
+                   category={record.categoryName}
+                   detail
+                   preserveAspectRatio={Boolean(record.photoUrl)}
+                 />
+               </div>
               <article className="inspiration-detail-copy">
                 <div className="inspiration-detail-categories">
                   <CategoryChip name={record.categoryName} />

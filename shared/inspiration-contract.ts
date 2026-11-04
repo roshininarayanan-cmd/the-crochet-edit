@@ -16,6 +16,7 @@ export interface InspirationRecord {
   difficulty: Difficulty | null;
   patternUrl: string | null;
   imageUrl: string | null;
+  photoUrl: string | null;
   notes: string | null;
   isStarred: boolean;
   createdAt: string;
