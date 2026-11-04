@@ -72,6 +72,9 @@ button { color: inherit; }
 .hero-actions { display: flex; align-items: center; gap: 22px; flex-wrap: wrap; margin-top: 34px; }
 .button-primary { background: var(--sage-dark); color: white; border-radius: 999px; padding: 16px 23px; font-size: 13px; transition: background .2s, transform .2s; }
 .button-primary span { font-size: 17px; line-height: 10px; }
+.welcome-surprise-button { background: #847296; }
+.welcome-surprise-button:hover:not(:disabled) { background: #6f5d82; transform: translateY(-2px); }
+.welcome-surprise-button:disabled { opacity: .58; cursor: wait; transform: none; }
 .quiet-link { color: #62695f; border-bottom: 1px solid #bcc5b7; padding: 5px 0; font-size: 12px; transition: color .2s; }
 .quiet-link:hover { color: #455542; }
 .hero-art { height: min(54vh, 470px); min-height: 0; position: relative; display: grid; place-items: center; isolation: isolate; }

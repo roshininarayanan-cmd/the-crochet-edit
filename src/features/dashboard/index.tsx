@@ -78,7 +78,13 @@ function SurpriseProjectPhoto({ project }: { project: InspirationRecord }) {
   return <img className="dashboard-surprise-photo" src={src} alt={project.title} onError={() => setFailed(true)} />;
 }
 
-export default function DashboardPage({ embedded = false }: { embedded?: boolean }) {
+export default function DashboardPage({
+  embedded = false,
+  onSurpriseReady,
+}: {
+  embedded?: boolean;
+  onSurpriseReady?: (launch: (() => void) | null) => void;
+}) {
   const Root = embedded ? "div" : "main";
   const pageClass = embedded ? "dashboard-page dashboard-page-embedded" : "dashboard-page";
   const [summary, setSummary] = useState<DashboardSummary | null>(null);
@@ -128,6 +134,12 @@ export default function DashboardPage({ embedded = false }: { embedded?: boolean
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (!onSurpriseReady) return;
+    onSurpriseReady(() => { void pickSurprise(); });
+    return () => onSurpriseReady(null);
+  }, [onSurpriseReady, pickSurprise]);
 
   useEffect(() => {
     if (!surpriseOpen) return;
