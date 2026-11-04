@@ -87,8 +87,12 @@
 .inspiration-placeholder-icon {
   position: relative; z-index: 1; display: block; width: min(48%, 84px); height: auto;
   filter: drop-shadow(0 8px 8px rgba(63, 80, 58, .12));
-  transform-origin: 50% 88%; animation: inspiration-bag-bob 3s ease-in-out infinite;
+  transform-origin: 50% 88%; animation: inspiration-icon-bob 3s ease-in-out infinite;
 }
+.inspiration-placeholder-icon[data-category="plushies"],
+.inspiration-placeholder-icon[data-category="gifts"] { animation-name: inspiration-icon-bounce; }
+.inspiration-placeholder-icon[data-category="clothing"],
+.inspiration-placeholder-icon[data-category="accessories"] { animation-name: inspiration-icon-sway; }
 .inspiration-card:hover .inspiration-placeholder-icon { animation-duration: 1.15s; }
 .inspiration-card-body { padding: 12px; }
 .inspiration-card-title { margin: 0; font: 500 18px/1.2 "Playfair Display", Georgia, serif; letter-spacing: -.02em; overflow-wrap: anywhere; }
@@ -98,6 +102,13 @@
   background: #edf0e9; color: #596b54; font-size: 10px; letter-spacing: .025em;
 }
 .inspiration-chip.lavender { background: var(--in-lavender-pale); color: #705c81; }
+.inspiration-chip.category-plushies { background: #f6dfd9; color: #744f52; }
+.inspiration-chip.category-clothing { background: #dfe9dd; color: #4e654d; }
+.inspiration-chip.category-bags { background: #fbf0cf; color: #745c31; }
+.inspiration-chip.category-accessories { background: #ece1f3; color: #69527c; }
+.inspiration-chip.category-home-decor { background: #dfedf4; color: #476476; }
+.inspiration-chip.category-gifts { background: #f6e3d6; color: #785440; }
+.inspiration-chip.category-other { background: #e8e7e0; color: #5c6058; }
 .inspiration-chip.difficulty { background: #f2eee7; color: #777062; }
 .inspiration-skeleton {
   width: 100%; height: 225px; border-radius: 16px; margin: 0;
@@ -165,9 +176,17 @@
 
 @keyframes inspiration-skeleton { to { background-position: -220% 0; } }
 @keyframes inspiration-arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes inspiration-bag-bob {
+@keyframes inspiration-icon-bob {
   0%, 100% { transform: translateY(0) rotate(-1.5deg); }
   50% { transform: translateY(-7px) rotate(1.5deg); }
+}
+@keyframes inspiration-icon-bounce {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-6px) scale(1.035); }
+}
+@keyframes inspiration-icon-sway {
+  0%, 100% { transform: rotate(-2deg); }
+  50% { transform: translateY(-4px) rotate(2deg); }
 }
 @media (max-width: 850px) {
   .inspiration-area { padding-left: 28px; padding-right: 28px; }
@@ -199,5 +218,8 @@
   .inspiration-dialog-actions > * { flex: 1; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .inspiration-area *, .inspiration-area *::before, .inspiration-area *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; }
+  .inspiration-area *, .inspiration-area *::before, .inspiration-area *::after {
+    animation-duration: .01ms !important; transition-duration: .01ms !important;
+  }
+  .inspiration-area .inspiration-placeholder-icon { animation: none !important; }
 }
