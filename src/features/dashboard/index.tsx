@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "wouter";
 import {
   Bar,
@@ -10,8 +11,8 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-import { getDashboardSummary } from "../../lib/inspirations-api";
-import type { DashboardSummary } from "../../lib/inspirations-api";
+import { getDashboardSummary, getSurpriseInspiration } from "../../lib/inspirations-api";
+import type { DashboardSummary, InspirationRecord } from "../../lib/inspirations-api";
 import "./dashboard.css";
 
 const categoryColors = ["#788a70", "#b7a2c8", "#9eae91", "#c8b7d5", "#647960", "#d1c1dc"];
@@ -64,6 +65,19 @@ function CategoryTooltip({ active, payload }: { active?: boolean; payload?: Arra
   );
 }
 
+function SurpriseProjectPhoto({ project }: { project: InspirationRecord }) {
+  const [failed, setFailed] = useState(false);
+  const src = project.photoUrl ?? project.imageUrl;
+  if (!src || failed) {
+    return (
+      <div className="dashboard-surprise-photo-placeholder" aria-hidden="true">
+        <span className="surprise-yarn-ball" />
+      </div>
+    );
+  }
+  return <img className="dashboard-surprise-photo" src={src} alt={project.title} onError={() => setFailed(true)} />;
+}
+
 export default function DashboardPage({ embedded = false }: { embedded?: boolean }) {
   const Root = embedded ? "div" : "main";
   const pageClass = embedded ? "dashboard-page dashboard-page-embedded" : "dashboard-page";
@@ -72,6 +86,73 @@ export default function DashboardPage({ embedded = false }: { embedded?: boolean
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const requestId = useRef(0);
+  const [surpriseOpen, setSurpriseOpen] = useState(false);
+  const [surpriseLoading, setSurpriseLoading] = useState(false);
+  const [surpriseProject, setSurpriseProject] = useState<InspirationRecord | null>(null);
+  const [surpriseError, setSurpriseError] = useState<string | null>(null);
+  const previousSurpriseId = useRef<string | null>(null);
+  const surpriseRequestId = useRef(0);
+  const surpriseLoadingLock = useRef(false);
+  const surpriseTriggerRef = useRef<HTMLButtonElement>(null);
+  const surpriseCloseRef = useRef<HTMLButtonElement>(null);
+  const surpriseDialogRef = useRef<HTMLElement>(null);
+
+  const closeSurprise = useCallback(() => {
+    surpriseRequestId.current += 1;
+    surpriseLoadingLock.current = false;
+    setSurpriseLoading(false);
+    setSurpriseOpen(false);
+    window.requestAnimationFrame(() => surpriseTriggerRef.current?.focus());
+  }, []);
+
+  const pickSurprise = useCallback(async () => {
+    if (surpriseLoadingLock.current) return;
+    surpriseLoadingLock.current = true;
+    const currentRequest = ++surpriseRequestId.current;
+    setSurpriseOpen(true);
+    setSurpriseLoading(true);
+    setSurpriseError(null);
+    try {
+      const project = await getSurpriseInspiration(previousSurpriseId.current ?? undefined);
+      if (surpriseRequestId.current !== currentRequest) return;
+      setSurpriseProject(project);
+      if (project) previousSurpriseId.current = project.id;
+    } catch (caught) {
+      if (surpriseRequestId.current === currentRequest) {
+        setSurpriseError(caught instanceof Error ? caught.message : "We couldn’t pick a project. Please try again.");
+      }
+    } finally {
+      if (surpriseRequestId.current === currentRequest) {
+        surpriseLoadingLock.current = false;
+        setSurpriseLoading(false);
+      }
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!surpriseOpen) return;
+    surpriseCloseRef.current?.focus();
+    function manageSurpriseDialogKeys(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        closeSurprise();
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const controls = surpriseDialogRef.current?.querySelectorAll<HTMLElement>("button:not(:disabled), a[href]");
+      if (!controls?.length) return;
+      const first = controls[0];
+      const last = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
+    }
+    window.addEventListener("keydown", manageSurpriseDialogKeys);
+    return () => window.removeEventListener("keydown", manageSurpriseDialogKeys);
+  }, [surpriseOpen, closeSurprise]);
 
   const loadSummary = useCallback(async (initial = false) => {
     const currentRequest = ++requestId.current;
@@ -132,6 +213,15 @@ export default function DashboardPage({ embedded = false }: { embedded?: boolean
             <p className="dashboard-intro">
               A quiet overview of the projects you’ve been dreaming up.
             </p>
+            <button
+              ref={surpriseTriggerRef}
+              type="button"
+              className="dashboard-surprise-button"
+              onClick={() => void pickSurprise()}
+              disabled={surpriseLoading}
+            >
+              <span aria-hidden="true">✦</span> Surprise Me!
+            </button>
           </div>
           <div className="dashboard-heading-note" aria-hidden="true">
             <span className="dashboard-note-line" />
@@ -263,6 +353,84 @@ export default function DashboardPage({ embedded = false }: { embedded?: boolean
           </>
         )}
       </div>
+      {surpriseOpen && createPortal(
+        <div className="dashboard-surprise-backdrop" onMouseDown={(event) => {
+          if (event.target === event.currentTarget) closeSurprise();
+        }}>
+          <section
+            ref={surpriseDialogRef}
+            className="dashboard-surprise-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="dashboard-surprise-title"
+            aria-describedby="dashboard-surprise-description"
+          >
+            <button
+              ref={surpriseCloseRef}
+              type="button"
+              className="dashboard-surprise-close"
+              aria-label="Close Surprise Me"
+              onClick={closeSurprise}
+            >
+              ×
+            </button>
+            <p className="dashboard-overline">A LITTLE CREATIVE NUDGE</p>
+            <h2 id="dashboard-surprise-title">Your next project</h2>
+            <p id="dashboard-surprise-description" className="dashboard-surprise-intro">
+              A lovely idea from your “Want to Make” list.
+            </p>
+
+            {surpriseLoading ? (
+              <div className="dashboard-surprise-message" role="status">
+                <span className="dashboard-surprise-spinner" aria-hidden="true" />
+                Finding an idea for you…
+              </div>
+            ) : surpriseError ? (
+              <div className="dashboard-surprise-message dashboard-surprise-error" role="alert">
+                <p>{surpriseError}</p>
+                <button type="button" className="dashboard-surprise-secondary" onClick={() => void pickSurprise()}>Try again</button>
+              </div>
+            ) : surpriseProject ? (
+              <article className="dashboard-surprise-card">
+                <div className="dashboard-surprise-visual">
+                  <SurpriseProjectPhoto key={surpriseProject.id} project={surpriseProject} />
+                </div>
+                <div className="dashboard-surprise-copy">
+                  <span className="dashboard-surprise-category">{surpriseProject.categoryName}</span>
+                  <h3>{surpriseProject.title}</h3>
+                  {surpriseProject.difficulty && <span className="dashboard-surprise-difficulty">{surpriseProject.difficulty}</span>}
+                  {surpriseProject.patternUrl && (
+                    <a className="dashboard-surprise-pattern" href={surpriseProject.patternUrl} target="_blank" rel="noopener noreferrer">
+                      Open original pattern <span aria-hidden="true">↗</span>
+                    </a>
+                  )}
+                  <Link className="dashboard-surprise-detail-link" href={`/inspirations/${encodeURIComponent(surpriseProject.id)}`}>
+                    View project details <span aria-hidden="true">↗</span>
+                  </Link>
+                </div>
+              </article>
+            ) : (
+              <div className="dashboard-surprise-message dashboard-surprise-empty" role="status">
+                <span className="surprise-empty-mark" aria-hidden="true">✿</span>
+                <p>No “Want to Make” projects yet. Save a crochet idea or move one to “Want to Make,” and we’ll pick one for you.</p>
+                <Link className="dashboard-surprise-detail-link" href="/inspirations" onClick={closeSurprise}>
+                  Browse My Collection <span aria-hidden="true">↗</span>
+                </Link>
+              </div>
+            )}
+
+            <div className="dashboard-surprise-actions">
+              {surpriseProject && (
+                <button type="button" className="dashboard-surprise-secondary" onClick={() => void pickSurprise()} disabled={surpriseLoading}>
+                  Pick Again
+                </button>
+              )}
+              <button type="button" className="dashboard-surprise-secondary" onClick={closeSurprise}>Close</button>
+            </div>
+          </section>
+        </div>,
+        document.body,
+      )}
     </Root>
   );
 }

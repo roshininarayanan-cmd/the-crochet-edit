@@ -34,6 +34,10 @@ export async function getCategories(): Promise<CategoryOption[]> {
 export const listInspirations = () => request<InspirationRecord[]>("/api/inspirations");
 export const listFavorites = () => request<InspirationRecord[]>("/api/favorites");
 export const getDashboardSummary = () => request<DashboardSummary>("/api/dashboard");
+export const getSurpriseInspiration = (previousId?: string) => {
+  const query = previousId ? `?previousId=${encodeURIComponent(previousId)}` : "";
+  return request<InspirationRecord | null>(`/api/inspirations/surprise${query}`);
+};
 export const getInspiration = (id: string) =>
   request<InspirationRecord>(`/api/inspirations/${encodeURIComponent(id)}`);
 export const updateInspirationStatus = (id: string, status: InspirationStatus) =>

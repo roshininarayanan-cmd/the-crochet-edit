@@ -1,5 +1,5 @@
 import { Router, type Request, type Response, type NextFunction } from "express";
-import { and, asc, count, desc, eq, exists } from "drizzle-orm";
+import { and, asc, count, desc, eq, exists, ne, sql } from "drizzle-orm";
 import multer from "multer";
 import { categories, inspirations, stars, users } from "../shared/schema";
 import { INSPIRATION_STATUSES, type Difficulty, type InspirationInput, type InspirationStatus } from "../shared/inspiration-contract";
@@ -227,6 +227,23 @@ export function createLibraryRouter(connection: Connection = db) {
       .innerJoin(categories, and(eq(inspirations.categoryId, categories.id), eq(inspirations.userId, categories.userId)))
       .where(scope.inspirationFilter).orderBy(desc(inspirations.createdAt), desc(inspirations.id));
     res.json(rows.map(presentInspiration));
+  }));
+  router.get("/inspirations/surprise", handle(async (req, res) => {
+    const scope = dataOwnership(req, connection);
+    const previousId = req.query.previousId;
+    if (previousId !== undefined && (typeof previousId !== "string" || !uuid.test(previousId))) {
+      throw new InputError("Please try picking a project again.");
+    }
+    const eligible = and(scope.inspirationFilter, eq(inspirations.status, "Want to Make"));
+    const chooseRandom = (excludeId?: string) =>
+      connection.select(inspirationSelection(scope.userId, connection)).from(inspirations)
+        .innerJoin(categories, and(eq(inspirations.categoryId, categories.id), eq(inspirations.userId, categories.userId)))
+        .where(excludeId ? and(eligible, ne(inspirations.id, excludeId)) : eligible)
+        .orderBy(sql`random()`)
+        .limit(1);
+    let [picked] = await chooseRandom(previousId);
+    if (!picked && previousId) [picked] = await chooseRandom();
+    res.json(picked ? presentInspiration(picked) : null);
   }));
   router.get("/inspirations/:id", handle(async (req, res) => {
     dataOwnership(req, connection);
