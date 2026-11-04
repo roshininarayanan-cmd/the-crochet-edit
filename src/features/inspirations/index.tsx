@@ -96,16 +96,15 @@ function GalleryPage() {
   }, [attempt]);
 
   return (
-    <main className="inspiration-area">
+    <main className="inspiration-area inspiration-library-page">
         <div className="inspiration-inner">
           <PageTop>THE CROCHET EDIT · YOUR COLLECTION</PageTop>
           <div className="inspiration-heading-row">
-            <div>
-              <h1 className="inspiration-title">Ideas to keep<br /><em>close at hand.</em></h1>
-              <p className="inspiration-intro">Patterns for slow afternoons, thoughtful gifts, and whatever you feel like making next.</p>
-              <div className="inspiration-count">{items ? `${items.length} ${items.length === 1 ? "idea" : "ideas"} gathered` : "Your collection"}</div>
+            <div className="inspiration-library-heading">
+              <h1 className="inspiration-title">Your collection</h1>
+              <div className="inspiration-count">{items ? `${items.length} ${items.length === 1 ? "idea" : "ideas"} gathered` : "Your saved ideas"}</div>
             </div>
-            <button type="button" className="inspiration-button" onClick={() => setLocation("/inspirations/new")}>
+            <button type="button" className="inspiration-button small" onClick={() => setLocation("/inspirations/new")}>
               <span aria-hidden="true">＋</span> Add an idea
             </button>
           </div>

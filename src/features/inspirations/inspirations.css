@@ -41,6 +41,13 @@
 .inspiration-intro { max-width: 570px; margin: 17px 0 0; color: var(--in-muted); font: 17px/1.65 "Playfair Display", Georgia, serif; }
 .inspiration-heading-row { display: flex; justify-content: space-between; align-items: end; gap: 24px; margin: 16px 0 34px; }
 .inspiration-count { color: var(--in-muted); font-size: 13px; margin-top: 12px; }
+.inspiration-library-page .inspiration-topline { margin-bottom: 16px; }
+.inspiration-library-page .inspiration-heading-row { align-items: center; gap: 16px; margin: 0 0 18px; }
+.inspiration-library-heading { display: flex; min-width: 0; align-items: baseline; flex-wrap: wrap; gap: 5px 12px; }
+.inspiration-library-page .inspiration-title {
+  max-width: none; font-size: clamp(30px, 3vw, 38px); line-height: 1.12; letter-spacing: -.03em;
+}
+.inspiration-library-page .inspiration-count { margin: 0; }
 .inspiration-button {
   min-height: 46px; padding: 0 21px; border: 0; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
   border-radius: 999px; background: var(--in-sage-deep); color: #fffdf9 !important; cursor: pointer;
@@ -163,8 +170,10 @@
 @media (max-width: 600px) {
   .inspiration-area { padding: 27px 19px 48px; }
   .inspiration-heading-row { align-items: flex-start; flex-direction: column; margin-bottom: 27px; }
+  .inspiration-library-page .inspiration-heading-row { flex-direction: row; align-items: center; margin-bottom: 14px; }
   .inspiration-heading-row .inspiration-button { align-self: stretch; }
   .inspiration-topline { margin-bottom: 25px; font-size: 10px; }
+  .inspiration-library-page .inspiration-topline { margin-bottom: 12px; }
   .inspiration-gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
   .inspiration-card { border-radius: 15px; }
   .inspiration-card-body { padding: 11px; }
