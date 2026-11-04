@@ -223,9 +223,11 @@ function GalleryPage({ favoritesOnly = false }: { favoritesOnly?: boolean }) {
               <h1 className="inspiration-title">{favoritesOnly ? "Your favorites" : "Your collection"}</h1>
               <div className="inspiration-count">{items ? `${items.length} ${items.length === 1 ? "idea" : "ideas"} gathered` : "Your saved ideas"}</div>
             </div>
-            <button type="button" className="inspiration-button small" onClick={() => setLocation("/inspirations/new")}>
-              <span aria-hidden="true">＋</span> Add an idea
-            </button>
+            {!favoritesOnly && (
+              <button type="button" className="inspiration-button small" onClick={() => setLocation("/inspirations/new")}>
+                <span aria-hidden="true">＋</span> Add an idea
+              </button>
+            )}
           </div>
 
           {starError && <div className="inspiration-form-error inspiration-favorite-error" role="alert">{starError}</div>}
