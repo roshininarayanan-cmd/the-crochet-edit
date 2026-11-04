@@ -3,12 +3,12 @@ import { randomUUID } from "node:crypto";
 import test from "node:test";
 import express from "express";
 import { eq, inArray } from "drizzle-orm";
-import { categories, inspirations, users } from "../../shared/schema";
+import { categories, inspirations, stars, users } from "../../shared/schema";
 import { db, pool } from "../db";
 import { createLibraryRouter } from "../inspirations";
 import type { InspirationRecord, CategoryOption } from "../../shared/inspiration-contract";
 
-test("Feature 3 HTTP CRUD and two-user privacy", async (t) => {
+test("Feature 3 CRUD and Feature 5 favorites privacy", async (t) => {
   const suffix = randomUUID();
   const userA = `crud-a-${suffix}`;
   const userB = `crud-b-${suffix}`;
@@ -63,9 +63,11 @@ test("Feature 3 HTTP CRUD and two-user privacy", async (t) => {
         try {
           await t.test("every resource operation rejects a signed-out request", async () => {
             for (const [method, path] of [
-              ["GET", "/categories"], ["GET", "/inspirations"], ["POST", "/inspirations"],
+              ["GET", "/categories"], ["GET", "/inspirations"], ["GET", "/favorites"], ["POST", "/inspirations"],
               ["GET", `/inspirations/${randomUUID()}`], ["PUT", `/inspirations/${randomUUID()}`],
               ["DELETE", `/inspirations/${randomUUID()}`],
+              ["POST", `/inspirations/${randomUUID()}/star`],
+              ["DELETE", `/inspirations/${randomUUID()}/star`],
             ]) assert.equal((await request(null, method, path, method === "POST" || method === "PUT" ? input : undefined)).status, 401);
           });
           await t.test("per-user category options are private and defaults are idempotent", async () => {
@@ -164,8 +166,42 @@ test("Feature 3 HTTP CRUD and two-user privacy", async (t) => {
             assert.equal(saved.imageKey, "reserved-upload-key");
             assert.equal(saved.userId, userA);
           });
+          await t.test("stars are unique, private, persistent, and cascade on inspiration deletion", async () => {
+            const path = `/inspirations/${item.id}/star`;
+            assert.equal((await request(userA, "POST", path)).status, 204);
+            assert.equal((await request(userA, "POST", path)).status, 204);
+
+            const savedStars = await tx.select().from(stars).where(eq(stars.userId, userA));
+            assert.equal(savedStars.length, 1);
+            assert.equal(savedStars[0].inspirationId, item.id);
+            assert.equal(typeof savedStars[0].id, "string");
+            assert(savedStars[0].createdAt instanceof Date);
+
+            const ownerFavorites = await request(userA, "GET", "/favorites");
+            assert.equal(ownerFavorites.status, 200);
+            assert.equal(ownerFavorites.data.length, 1);
+            assert.equal(ownerFavorites.data[0].id, item.id);
+            assert.equal(ownerFavorites.data[0].isStarred, true);
+            assert.deepEqual((await request(userB, "GET", "/favorites")).data, []);
+            assert.equal((await request(userA, "GET", "/favorites")).data.length, 1);
+            assert.equal((await request(userA, "GET", "/inspirations")).data[0].isStarred, true);
+            assert.equal((await request(userA, "GET", `/inspirations/${item.id}`)).data.isStarred, true);
+            assert.equal((await request(userB, "POST", path)).status, 404);
+            assert.equal((await request(userB, "DELETE", path)).status, 404);
+            assert.equal((await tx.select().from(stars).where(eq(stars.userId, userA))).length, 1);
+
+            assert.equal((await request(userA, "DELETE", path)).status, 204);
+            assert.deepEqual((await request(userA, "GET", "/favorites")).data, []);
+            assert.equal((await request(userA, "GET", "/inspirations")).data[0].isStarred, false);
+            assert.equal((await tx.select().from(stars).where(eq(stars.userId, userA))).length, 0);
+
+            assert.equal((await request(userA, "POST", path)).status, 204);
+            assert.equal((await request(userA, "GET", "/favorites")).data.length, 1);
+          });
           await t.test("owner delete persists, and subsequent reads and repeated deletes return 404", async () => {
+            assert.equal((await tx.select().from(stars).where(eq(stars.inspirationId, item.id))).length, 1);
             assert.equal((await request(userA, "DELETE", `/inspirations/${item.id}`)).status, 204);
+            assert.equal((await tx.select().from(stars).where(eq(stars.inspirationId, item.id))).length, 0);
             assert.equal((await request(userA, "GET", `/inspirations/${item.id}`)).status, 404);
             assert.equal((await request(userA, "DELETE", `/inspirations/${item.id}`)).status, 404);
             assert.deepEqual((await request(userA, "GET", "/inspirations")).data, []);

@@ -17,6 +17,7 @@ export interface InspirationRecord {
   patternUrl: string | null;
   imageUrl: string | null;
   notes: string | null;
+  isStarred: boolean;
   createdAt: string;
   updatedAt: string;
 }

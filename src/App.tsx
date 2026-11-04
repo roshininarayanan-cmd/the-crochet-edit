@@ -145,7 +145,8 @@ function SiteHeader() {
         {isLoaded && isSignedIn && (
           <>
             <Link className="button button-text" href="/inspirations">My collection</Link>
-            {!location.startsWith("/inspirations") && <span className="header-note">Your little corner</span>}
+            <Link className="button button-text" href="/favorites">Favorites</Link>
+            {!location.startsWith("/inspirations") && !location.startsWith("/favorites") && <span className="header-note">Your little corner</span>}
             <button
               className="button button-text"
               type="button"
@@ -298,6 +299,7 @@ function AppRoutes() {
           <Route path="/welcome" component={WelcomePage} />
           <Route path="/sign-in/*?" component={SignInPage} />
           <Route path="/sign-up/*?" component={SignUpPage} />
+          <Route path="/favorites" component={InspirationRoutes} />
           <Route path="/inspirations" component={InspirationRoutes} />
           <Route path="/inspirations/*" component={InspirationRoutes} />
           <Route><HomeRedirect /></Route>
