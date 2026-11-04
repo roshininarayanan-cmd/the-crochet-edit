@@ -1,1 +1,2 @@
 - [Managed Clerk SDK compatibility](clerk-sdk-compatibility.md) — check SDK major compatibility before replacing the prescribed host-aware auth wiring.
+- [Preview verification](preview-verification.md) — a local screenshot does not verify the user's externally forwarded preview.
