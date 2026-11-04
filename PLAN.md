@@ -10,13 +10,13 @@ The biggest risk in my opinion is image upload permissions and persistent storag
 
 | Planned feature | Shipped / Changed / Cut | Status (Done / Backlogged) | Learning | What changed and why (one line) |
 | --- | --- | --- | --- | --- |
-| Authentication | Shipped | Done | Keep password handling with Clerk; sync the verified account ID and email to the app database. | Clerk provides sign-up, login, and logout, while the server synchronizes each account's users row. |
-| Data model | Shipped | Done | Relational constraints matter: the category and inspiration owner must match, and stars need one shared table with a unique user/inspiration pair. | PostgreSQL users, categories, inspirations, and stars tables enforce the planned relationships and ownership. |
-| CRUD | Changed | Done | A merged PR can still need refinement; preserve post-merge work on a new branch based on current main and send it through a follow-up PR. | Card artwork, category colors, and sizing requests after the original CRUD merge were preserved on `fix/crud-updates` and merged separately. |
-| Validation | Shipped | Done | Validate on both client and server so requests that bypass the form cannot save invalid data. | Required title/category and pattern URL checks provide field feedback in the UI and reject invalid API requests. |
-| Favorites | Shipped | Done | A shared junction table, unique per-user pairs, and owner checks prevent duplicates and cross-account access. | Stars persist in one shared table and are scoped to inspirations owned by the signed-in user. |
-| Search, filter, and sort | Changed | Done | Match the implemented acceptance criteria to the latest feature request; later prompts may narrow the original plan. | Title search shipped instead of notes search, alongside category/difficulty filters and the requested sort options. |
-| Dashboard | Changed | Done | Reconcile metrics when requirements change so the displayed numbers remain database-backed and user-scoped. | The later dashboard request uses Categories Used instead of the original Completed Inspirations statistic. |
-| Photo uploads | Shipped | Done | Provision the App Storage bucket before SDK operations; store object references, not image bytes, in PostgreSQL and enforce ownership on photo routes. | JPG, PNG, and WebP uploads use persistent App Storage, while the database keeps the photo reference. |
-| Project status tracking | Shipped | Done | Store status on the inspiration and authorize changes on the backend, not just in the interface. | Projects default to Want to Make, with status controls on cards and details plus the requested return confirmation. |
-| Surprise Me | Shipped | Done | Select eligible projects on the server using both the authenticated owner and project status. | The picker randomly selects only the user's Want to Make projects and is available from the dashboard and welcome screen. |
+| Authentication | Shipped | Done | I wanted an account so my collection stays private. | Added email sign-up, login, and logout. |
+| Data model | Shipped | Done | Each person's categories and ideas should stay with their own account. | Added separate categories and inspirations for each account, plus saved favorites. |
+| CRUD | Changed | Done | I kept wanting to adjust the cards after the first version. | Added smaller cards and category-specific artwork and colors in a follow-up update. |
+| Validation | Shipped | Done | I wanted to know what was missing before saving. | Made title and category required and added clear messages for missing fields or invalid URLs. |
+| Favorites | Shipped | Done | I wanted an easy way to mark and revisit favorite projects. | Added star buttons and a Favorites page that remembers each account's stars. |
+| Search, filter, and sort | Changed | Done | I wanted to find projects faster by title, category, and difficulty. | Added title search, category/difficulty filters, sorting, and Clear Filters. |
+| Dashboard | Changed | Done | I wanted a quick overview of my collection. | Added total and starred counts, Categories Used, and a category chart instead of the planned completed count. |
+| Photo uploads | Shipped | Done | I wanted uploaded photos to stay available after leaving the page. | Added optional uploads, previews, photo replacement and removal, and persistent storage. |
+| Project status tracking | Shipped | Done | I wanted to track what I want to make, started, and finished. | Added three project statuses and a “Return to My Collection?” prompt. |
+| Surprise Me | Shipped | Done | I wanted help choosing my next crochet project. | Added a Surprise Me picker for Want to Make ideas on the welcome screen and dashboard. |
