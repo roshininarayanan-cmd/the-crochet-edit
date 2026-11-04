@@ -3,6 +3,9 @@
 ## Current scope
 Only Feature 1 from `PLAN.md` is implemented: a public homepage, email/password signup and login, logout, and a signed-in welcome page. Do not add galleries, categories, favorites, dashboards, or other features unless requested.
 
+## Visual direction
+The user changed the palette to soft yellow, soft pink, sage green, and light blue; this supersedes the original cream/lavender direction in `PLAN.md`. The homepage headline is “Your next pretty project.” Yarn should look like wound strands, not smooth spheres. Do not restore the removed hands-itching line.
+
 ## Stack and authentication
 - React + TypeScript with Vite
 - Node.js + Express, serving the frontend and same-origin API

@@ -9,6 +9,7 @@ import {
 import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { Link, Redirect, Route, Router as WouterRouter, Switch, useLocation } from "wouter";
+import YarnIllustration from "./components/YarnIllustration";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 const clerkPubKey = publishableKeyFromHost(
@@ -168,7 +169,7 @@ function HomePage() {
     return (
       <main className="welcome-page">
         <div className="welcome-orb orb-sage" />
-        <div className="welcome-orb orb-lilac" />
+        <div className="welcome-orb orb-pink" />
         <section className="welcome-card">
           <span className="eyebrow">A place for your next little project</span>
           <h1>Welcome{firstName ? `, ${firstName}` : " back"}.</h1>
@@ -176,7 +177,7 @@ function HomePage() {
             Your crochet corner is ready whenever inspiration finds you.
             We’re glad you’re here.
           </p>
-          <span className="welcome-stitch" aria-hidden="true">✳</span>
+          <span className="welcome-stitch" aria-hidden="true" />
         </section>
       </main>
     );
@@ -186,7 +187,7 @@ function HomePage() {
     <main className="hero">
       <div className="hero-copy">
         <span className="eyebrow"><span className="eyebrow-dot" /> A softer place to save inspiration</span>
-        <h1>Make room for<br /><em>your next</em> lovely thing.</h1>
+        <h1>Your next<br /><em>pretty project</em></h1>
         <p className="hero-description">
           A cozy little home for the crochet ideas you find, love, and can’t
           wait to make.
@@ -197,26 +198,14 @@ function HomePage() {
           </Link>
           <Link className="quiet-link" href="/sign-in">I already have an account</Link>
         </div>
-        <div className="hero-footnote">
-          <span className="footnote-spark" aria-hidden="true">✳</span>
-          Made for the ideas that make your hands itch to create.
-        </div>
       </div>
       <div className="hero-art" aria-label="Decorative yarn and crochet-inspired illustration">
         <div className="art-wash" />
         <div className="art-label label-top">A LITTLE SPACE TO MAKE</div>
-        <div className="yarn-ball yarn-sage"><span /></div>
-        <div className="yarn-ball yarn-lilac"><span /></div>
-        <div className="yarn-ball yarn-cream"><span /></div>
-        <svg className="yarn-line" viewBox="0 0 520 420" fill="none" aria-hidden="true">
-          <path d="M145 228c46-91 132-92 177-18 28 46 71 73 131 37 29-18 46-45 45-72" stroke="#697761" strokeWidth="3" strokeLinecap="round" strokeDasharray="1 1"/>
-          <path d="M68 293c38-5 52-33 74-65 17-25 32-30 48-21" stroke="#b09bc0" strokeWidth="3" strokeLinecap="round"/>
-        </svg>
+        <YarnIllustration />
         <div className="art-note note-left">for the things<br />you can’t wait<br />to make</div>
         <div className="art-note note-right">ideas<br />worth keeping</div>
         <div className="art-label label-bottom">GATHER · DREAM · CREATE</div>
-        <span className="art-spark spark-one">✳</span>
-        <span className="art-spark spark-two">✳</span>
       </div>
     </main>
   );
@@ -240,7 +229,7 @@ function SignInPage() {
   return (
     <main className="auth-page">
       <div className="auth-backdrop auth-backdrop-sage" />
-      <div className="auth-backdrop auth-backdrop-lilac" />
+      <div className="auth-backdrop auth-backdrop-pink" />
       <Link className="auth-home-link" href="/"><span aria-hidden="true">←</span> Back home</Link>
       <SignIn
         routing="path"
@@ -257,7 +246,7 @@ function SignUpPage() {
   return (
     <main className="auth-page">
       <div className="auth-backdrop auth-backdrop-sage" />
-      <div className="auth-backdrop auth-backdrop-lilac" />
+      <div className="auth-backdrop auth-backdrop-pink" />
       <Link className="auth-home-link" href="/"><span aria-hidden="true">←</span> Back home</Link>
       <SignUp
         routing="path"
