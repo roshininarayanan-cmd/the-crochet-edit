@@ -63,3 +63,5 @@ Do not add fake or placeholder inspirations to my database.
 5. Prompt Documentation
 
 Create prompts/dashboard.md and save this entire prompt inside it.
+
+I actually like the dashboard being on the homepage with the Welcome message but also have a link at the top.
