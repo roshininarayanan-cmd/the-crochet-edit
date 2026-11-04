@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useState } from "react";
 import {
   ClerkProvider,
   SignIn,
@@ -176,6 +176,10 @@ function DashboardRoute() {
 
 function HomePage() {
   const { isLoaded, isSignedIn, user } = useUser();
+  const [surpriseLauncher, setSurpriseLauncher] = useState<(() => void) | null>(null);
+  const onSurpriseReady = useCallback((launch: (() => void) | null) => {
+    setSurpriseLauncher(() => launch);
+  }, []);
 
   if (!isLoaded) {
     return <main className="loading-state" aria-label="Loading account" />;
@@ -197,10 +201,18 @@ function HomePage() {
           <span className="welcome-stitch" aria-hidden="true" />
           <div className="hero-actions" style={{ justifyContent: "center" }}>
             <Link className="button button-primary" href="/inspirations">Open my collection <span aria-hidden="true">↗</span></Link>
+            <button
+              className="button button-primary welcome-surprise-button"
+              type="button"
+              onClick={() => surpriseLauncher?.()}
+              disabled={!surpriseLauncher}
+            >
+              Surprise Me! <span aria-hidden="true">✦</span>
+            </button>
           </div>
         </section>
         <Suspense fallback={<div className="dashboard-page dashboard-page-embedded" aria-label="Loading dashboard" />}>
-          <DashboardPage embedded />
+          <DashboardPage embedded onSurpriseReady={onSurpriseReady} />
         </Suspense>
       </main>
     );
