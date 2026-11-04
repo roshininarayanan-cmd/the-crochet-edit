@@ -1,0 +1,1 @@
+- [Managed Clerk SDK compatibility](clerk-sdk-compatibility.md) — check SDK major compatibility before replacing the prescribed host-aware auth wiring.

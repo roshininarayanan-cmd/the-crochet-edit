@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import {
   ClerkProvider,
   SignIn,
@@ -6,11 +6,15 @@ import {
   useClerk,
   useUser,
 } from "@clerk/react";
+import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { Link, Redirect, Route, Router as WouterRouter, Switch, useLocation } from "wouter";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
-const clerkPubKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY;
+const clerkPubKey = publishableKeyFromHost(
+  window.location.hostname,
+  import.meta.env.VITE_CLERK_PUBLISHABLE_KEY,
+);
 const clerkProxyUrl = import.meta.env.VITE_CLERK_PROXY_URL;
 
 if (!clerkPubKey) {
@@ -37,7 +41,7 @@ const clerkAppearance = {
     colorInput: "#ffffff",
     colorInputForeground: "#333a34",
     colorNeutral: "#333a34",
-    fontFamily: "Arial, sans-serif",
+    fontFamily: '"DM Sans", Arial, sans-serif',
     borderRadius: "0.8rem",
   },
   elements: {
@@ -75,24 +79,39 @@ const clerkAppearance = {
 
 function UserSync() {
   const { isLoaded, isSignedIn, user } = useUser();
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
+    setError(null);
     if (!isLoaded || !isSignedIn || !user) return;
+    const controller = new AbortController();
 
     void fetch("/api/auth/sync", {
       method: "POST",
       credentials: "include",
+      signal: controller.signal,
     }).then(async (response) => {
       if (!response.ok) {
         const result = (await response.json().catch(() => ({}))) as { error?: string };
-        console.error("Account sync failed:", result.error ?? response.statusText);
+        throw new Error(result.error ?? "We couldn't finish setting up your account.");
       }
     }).catch((error: unknown) => {
-      console.error("Account sync request failed:", error);
+      if (!controller.signal.aborted) {
+        setError(error instanceof Error ? error.message : "Account setup failed. Please try again.");
+      }
     });
-  }, [isLoaded, isSignedIn, user?.id]);
+    return () => controller.abort();
+  }, [isLoaded, isSignedIn, user?.id, attempt]);
 
-  return null;
+  return error && isSignedIn ? (
+    <div role="alert" style={{ padding: "14px 24px", background: "#fbefec", color: "#733b33", textAlign: "center" }}>
+      {error}{" "}
+      <button type="button" onClick={() => setAttempt((value) => value + 1)} style={{ cursor: "pointer", textDecoration: "underline", border: 0, background: "transparent" }}>
+        Retry account setup
+      </button>
+    </div>
+  ) : null;
 }
 
 function Brand() {
@@ -216,6 +235,8 @@ function WelcomePage() {
 }
 
 function SignInPage() {
+  const { isLoaded, isSignedIn } = useUser();
+  if (isLoaded && isSignedIn) return <Redirect to="/welcome" />;
   return (
     <main className="auth-page">
       <div className="auth-backdrop auth-backdrop-sage" />
@@ -231,6 +252,8 @@ function SignInPage() {
 }
 
 function SignUpPage() {
+  const { isLoaded, isSignedIn } = useUser();
+  if (isLoaded && isSignedIn) return <Redirect to="/welcome" />;
   return (
     <main className="auth-page">
       <div className="auth-backdrop auth-backdrop-sage" />

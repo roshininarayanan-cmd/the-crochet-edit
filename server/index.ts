@@ -1,16 +1,24 @@
 import express from "express";
 import { clerkClient, clerkMiddleware, getAuth } from "@clerk/express";
+import { publishableKeyFromHost } from "@clerk/shared/keys";
 import { eq } from "drizzle-orm";
 import { createServer as createViteServer } from "vite";
 import { db } from "./db";
 import { users } from "../shared/schema";
-import { CLERK_PROXY_PATH, clerkProxyMiddleware } from "./middlewares/clerkProxyMiddleware";
+import { CLERK_PROXY_PATH, clerkProxyMiddleware, getClerkProxyHost } from "./middlewares/clerkProxyMiddleware";
 
 const app = express();
 
 // The proxy must precede body parsing so Clerk requests retain their raw body.
 app.use(CLERK_PROXY_PATH, clerkProxyMiddleware());
-app.use(clerkMiddleware({ publishableKey: process.env.CLERK_PUBLISHABLE_KEY }));
+app.use(
+  clerkMiddleware((req) => ({
+    publishableKey: publishableKeyFromHost(
+      getClerkProxyHost(req) ?? "",
+      process.env.CLERK_PUBLISHABLE_KEY,
+    ),
+  })),
+);
 app.use(express.json());
 
 app.get("/api/health", (_req, res) => res.json({ ok: true }));
