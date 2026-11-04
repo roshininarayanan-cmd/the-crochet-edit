@@ -80,10 +80,14 @@ function SurpriseProjectPhoto({ project }: { project: InspirationRecord }) {
 
 export default function DashboardPage({
   embedded = false,
+  showSurpriseButton = true,
   onSurpriseReady,
+  onCollectionEmptyChange,
 }: {
   embedded?: boolean;
+  showSurpriseButton?: boolean;
   onSurpriseReady?: (launch: (() => void) | null) => void;
+  onCollectionEmptyChange?: (isEmpty: boolean) => void;
 }) {
   const Root = embedded ? "div" : "main";
   const pageClass = embedded ? "dashboard-page dashboard-page-embedded" : "dashboard-page";
@@ -173,7 +177,10 @@ export default function DashboardPage({
     setError(null);
     try {
       const result = await getDashboardSummary();
-      if (requestId.current === currentRequest) setSummary(result);
+      if (requestId.current === currentRequest) {
+        setSummary(result);
+        onCollectionEmptyChange?.(result.totalInspirations === 0);
+      }
     } catch (caught) {
       if (requestId.current === currentRequest) {
         setError(caught instanceof Error ? caught.message : "We couldn't load your dashboard.");
@@ -184,7 +191,7 @@ export default function DashboardPage({
         setRefreshing(false);
       }
     }
-  }, []);
+  }, [onCollectionEmptyChange]);
 
   useEffect(() => {
     void loadSummary(true);
@@ -225,15 +232,17 @@ export default function DashboardPage({
             <p className="dashboard-intro">
               A quiet overview of the projects you’ve been dreaming up.
             </p>
-            <button
-              ref={surpriseTriggerRef}
-              type="button"
-              className="dashboard-surprise-button"
-              onClick={() => void pickSurprise()}
-              disabled={surpriseLoading}
-            >
-              <span aria-hidden="true">✦</span> Surprise Me!
-            </button>
+            {showSurpriseButton && (
+              <button
+                ref={surpriseTriggerRef}
+                type="button"
+                className="dashboard-surprise-button"
+                onClick={() => void pickSurprise()}
+                disabled={surpriseLoading}
+              >
+                <span aria-hidden="true">✦</span> Surprise Me!
+              </button>
+            )}
           </div>
           <div className="dashboard-heading-note" aria-hidden="true">
             <span className="dashboard-note-line" />

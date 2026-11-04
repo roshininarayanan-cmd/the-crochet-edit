@@ -2,3 +2,4 @@
 - [Preview verification](preview-verification.md) — a local screenshot does not verify the user's externally forwarded preview.
 - [Favorites ownership and schema](favorites-ownership.md) — keep star ownership checks in the authenticated API; avoid a redundant populated-table constraint that prompts for truncation.
 - [App Storage provisioning](app-storage-provisioning.md) — create the default bucket in Replit's App Storage tool before SDK object operations; initialize lazily so missing setup does not break startup.
+- [Welcome onboarding state](welcome-onboarding-state.md) — show the simplified welcome once for a new empty account, then restore returning-user actions on that browser.
