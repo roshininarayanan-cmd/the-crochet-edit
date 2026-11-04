@@ -1,10 +1,11 @@
 # The Crochet Edit
 
 ## Current scope
-Features 1 and 2 from `PLAN.md` are implemented: homepage/authentication and the PostgreSQL data model. Feature 2 adds no resource CRUD routes or interfaces. Do not add galleries, category interfaces, favorites, dashboards, or other features unless requested.
+Features 1–3 from `PLAN.md` are implemented: homepage/authentication, PostgreSQL data model, and private inspiration CRUD/gallery/forms/details. Do not add category management, favorites, search/filtering, status editing, dashboards, uploads, or other features unless requested.
 
 ## Visual direction
 The user changed the palette to soft yellow, soft pink, sage green, and light blue; this supersedes the original cream/lavender direction in `PLAN.md`. The homepage headline is “Your next pretty project.” Yarn should look like wound strands, not smooth spheres. Do not restore the removed hands-itching line.
+For Feature 3 the user requested cream, sage green, and lavender. Apply that to the inspiration pages while preserving the existing public homepage.
 
 ## Stack and authentication
 - React + TypeScript with Vite
@@ -21,6 +22,7 @@ The user changed the palette to soft yellow, soft pink, sage green, and light bl
 - `npm start` — Express serving the production frontend
 - `npm run db:push` — apply the Drizzle schema to the development database; do not run production schema changes at startup
 - `npm run test:datamodel` — verify database constraints and backend ownership with rolled-back fixtures
+- `npm run test:crud` — exercise actual inspiration HTTP handlers, CRUD persistence, and two-user privacy with rolled-back fixtures
 
 `schema.md` describes the data model. Future category/inspiration backend handlers must use the authenticated ownership guards in `server/data-ownership.ts`. The composite category/owner foreign key prevents cross-user category assignments. Do not trust submitted owner IDs.
 
@@ -28,3 +30,6 @@ Required environment variables: `DATABASE_URL`, `CLERK_SECRET_KEY`, `CLERK_PUBLI
 
 The class assignment's original signup prompt is saved in `prompts/signup.md`.
 The Feature 2 prompt is saved in `prompts/datamodel.md`.
+The Feature 3 prompt is saved in `prompts/crud.md`.
+
+Feature 3 uses the existing categories/inspirations tables. `image_url` stores optional remote images while `image_key` remains reserved for future uploads; these fields are not interchangeable. `/api/categories` provides idempotent per-user default choices but no category management. `/api/inspirations` and `/api/inspirations/:id` are private; never remove owner predicates from reads, updates, or deletes. `updated_at` is refreshed on edits.

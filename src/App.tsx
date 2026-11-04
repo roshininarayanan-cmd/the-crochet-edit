@@ -10,6 +10,7 @@ import { publishableKeyFromHost } from "@clerk/react/internal";
 import { shadcn } from "@clerk/themes";
 import { Link, Redirect, Route, Router as WouterRouter, Switch, useLocation } from "wouter";
 import YarnIllustration from "./components/YarnIllustration";
+import { InspirationRoutes } from "./features/inspirations";
 
 const basePath = import.meta.env.BASE_URL.replace(/\/$/, "");
 const clerkPubKey = publishableKeyFromHost(
@@ -129,6 +130,7 @@ function Brand() {
 function SiteHeader() {
   const { isLoaded, isSignedIn } = useUser();
   const { signOut } = useClerk();
+  const [location] = useLocation();
 
   return (
     <header className="site-header">
@@ -142,7 +144,8 @@ function SiteHeader() {
         )}
         {isLoaded && isSignedIn && (
           <>
-            <span className="header-note">Your little corner</span>
+            <Link className="button button-text" href="/inspirations">My collection</Link>
+            {!location.startsWith("/inspirations") && <span className="header-note">Your little corner</span>}
             <button
               className="button button-text"
               type="button"
@@ -178,6 +181,9 @@ function HomePage() {
             We’re glad you’re here.
           </p>
           <span className="welcome-stitch" aria-hidden="true" />
+          <div className="hero-actions" style={{ justifyContent: "center" }}>
+            <Link className="button button-primary" href="/inspirations">Open my collection <span aria-hidden="true">↗</span></Link>
+          </div>
         </section>
       </main>
     );
@@ -292,6 +298,8 @@ function AppRoutes() {
           <Route path="/welcome" component={WelcomePage} />
           <Route path="/sign-in/*?" component={SignInPage} />
           <Route path="/sign-up/*?" component={SignUpPage} />
+          <Route path="/inspirations" component={InspirationRoutes} />
+          <Route path="/inspirations/*" component={InspirationRoutes} />
           <Route><HomeRedirect /></Route>
         </Switch>
         <footer className="site-footer">

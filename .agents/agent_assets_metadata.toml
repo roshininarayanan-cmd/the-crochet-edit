@@ -1,0 +1,16 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "82TWgXCoqqTmgYCOg5GDy"
+uri = "file://generated-artifacts/privacy-verification.html"
+type = "html"
+title = "Privacy test evidence"
+description = "Assignment report with deliberately failing and passing test screenshots; the live app remained protected."
+logical_id = "61180202-d96c-4d93-b9c2-7e0581c71009"
+content_hash = "sha256:0d403033908b349bde201d564819f42e48c852bc12a85c70f5b0a6b5566a351b"
+size = 397572
+mtime_ms = 1793764756796
+storage_uri = "gcs://replit-rams-assets-janeway/rams/assets/repl:fa1962d3-a616-4d67-b83d-ac6472cb0710/61180202-d96c-4d93-b9c2-7e0581c71009/19020b9c-38a4-45b3-8085-bc0b5719c599"
+storage_version_token = "1793764757337603"
+content_type = "text/html"
