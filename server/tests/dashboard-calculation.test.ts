@@ -47,26 +47,6 @@ test("Test 2: Dashboard Calculation", async (t) => {
           });
           next();
         });
-        // The red-test switch is restricted to this temporary loopback fixture.
-        // It cannot alter the live Express app or persisted dashboard data.
-        if (process.env.DASHBOARD_TEST_MUTATION === "increment-total") {
-          app.use("/api", (req, res, next) => {
-            if (req.method === "GET" && req.path === "/dashboard") {
-              const sendJson = res.json.bind(res);
-              res.json = ((body: unknown) => {
-                if (body && typeof body === "object" && "totalInspirations" in body &&
-                    typeof body.totalInspirations === "number") {
-                  return sendJson({
-                    ...body,
-                    totalInspirations: body.totalInspirations + 1,
-                  });
-                }
-                return sendJson(body);
-              }) as typeof res.json;
-            }
-            next();
-          });
-        }
         app.use("/api", createLibraryRouter(tx));
 
         const server = app.listen(0, "127.0.0.1");

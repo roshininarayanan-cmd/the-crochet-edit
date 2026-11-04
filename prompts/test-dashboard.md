@@ -52,3 +52,24 @@ Create `prompts/test-dashboard.md` and save this entire prompt in the file.
 - Do not ask me to use Shell.
 
 When the test fails, explain the failure and tell me where to capture my screenshot.
+
+---
+
+I've captured the screenshot of the failing Dashboard Calculation test.
+
+Now please:
+
+1. Restore the correct dashboard calculation and remove the deliberate bug completely.
+2. Run the exact same automated test again.
+3. Verify that the test PASSES and correctly calculates 3 inspirations.
+4. Display the real passing test output so I can capture my green screenshot.
+5. Run the existing test suite to ensure all previously built features still work.
+6. Confirm that no deliberately broken code remains.
+7. Append this follow-up prompt to `prompts/test-dashboard.md`.
+
+Please explain in plain English:
+- What the automated test checks.
+- Why it failed when the dashboard calculation was intentionally incorrect.
+- One realistic code change that could make the test fail in the future.
+
+Do not modify `main`, push, merge, or publish anything yet. Do not ask me to use Shell.
