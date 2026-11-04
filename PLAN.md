@@ -10,13 +10,13 @@ The biggest risk in my opinion is image upload permissions and persistent storag
 
 | Planned feature | Shipped / Changed / Cut | Status (Done / Backlogged) | Learning | What changed and why (one line) |
 | --- | --- | --- | --- | --- |
-| Authentication | Shipped | Done | I wanted an account so my collection stays private. | Added email sign-up, login, and logout. |
-| Data model | Shipped | Done | Each person's categories and ideas should stay with their own account. | Added separate categories and inspirations for each account, plus saved favorites. |
-| CRUD | Changed | Done | I kept wanting to adjust the cards after the first version. | Added smaller cards and category-specific artwork and colors in a follow-up update. |
-| Validation | Shipped | Done | I wanted to know what was missing before saving. | Made title and category required and added clear messages for missing fields or invalid URLs. |
-| Favorites | Shipped | Done | I wanted an easy way to mark and revisit favorite projects. | Added star buttons and a Favorites page that remembers each account's stars. |
-| Search, filter, and sort | Changed | Done | I wanted to find projects faster by title, category, and difficulty. | Added title search, category/difficulty filters, sorting, and Clear Filters. |
-| Dashboard | Changed | Done | I wanted a quick overview of my collection. | Added total and starred counts, Categories Used, and a category chart instead of the planned completed count. |
-| Photo uploads | Shipped | Done | I wanted uploaded photos to stay available after leaving the page. | Added optional uploads, previews, photo replacement and removal, and persistent storage. |
-| Project status tracking | Shipped | Done | I wanted to track what I want to make, started, and finished. | Added three project statuses and a “Return to My Collection?” prompt. |
-| Surprise Me | Shipped | Done | I wanted help choosing my next crochet project. | Added a Surprise Me picker for Want to Make ideas on the welcome screen and dashboard. |
+| Authentication | Shipped | Done | I learned that sign-in can be handled separately from the app's user record. | Added email sign-up, login, and logout. |
+| Data model | Shipped | Done | I learned that linking each project to its category and owner keeps accounts separate. | Added separate categories and inspirations for each account, plus saved favorites. |
+| CRUD | Changed | Done | I learned that a feature may need follow-up changes after its first version is merged. | Added smaller cards and category-specific artwork and colors in a follow-up update. |
+| Validation | Shipped | Done | I learned that clear errors help people fix a form without losing what they entered. | Made title and category required and added clear messages for missing fields or invalid URLs. |
+| Favorites | Shipped | Done | I learned that favorites should still be there after signing out and back in. | Added star buttons and a Favorites page that remembers each account's stars. |
+| Search, filter, and sort | Changed | Done | I learned that combining search, filters, and sorting makes a large collection easier to browse. | Added title search, category/difficulty filters, sorting, and Clear Filters. |
+| Dashboard | Changed | Done | I learned to check dashboard numbers against saved projects and update the plan when requested statistics change. | Added total and starred counts, Categories Used, and a category chart instead of the planned completed count. |
+| Photo uploads | Shipped | Done | I learned that a storage bucket needs to be set up before uploaded photos can be saved. | Added optional uploads, previews, photo replacement and removal, and persistent storage. |
+| Project status tracking | Shipped | Done | I learned that status updates should be quick and give a clear choice about where to go next. | Added three project statuses and a “Return to My Collection?” prompt. |
+| Surprise Me | Shipped | Done | I learned that random suggestions should come from projects I haven't started yet. | Added a Surprise Me picker for Want to Make ideas on the welcome screen and dashboard. |
