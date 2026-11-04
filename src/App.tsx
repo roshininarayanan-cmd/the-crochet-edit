@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
 import {
   ClerkProvider,
   SignIn,
@@ -177,10 +177,50 @@ function DashboardRoute() {
 function HomePage() {
   const { isLoaded, isSignedIn, user } = useUser();
   const [surpriseLauncher, setSurpriseLauncher] = useState<(() => void) | null>(null);
-  const [collectionIsEmpty, setCollectionIsEmpty] = useState<boolean | null>(null);
+  const [collectionSnapshot, setCollectionSnapshot] = useState<{ userId: string; isEmpty: boolean } | null>(null);
+  const [isInitialWelcome, setIsInitialWelcome] = useState<boolean | null>(null);
+  const welcomeDecisionRef = useRef<{ userId: string; isInitial: boolean } | null>(null);
+  const userId = user?.id;
+  const collectionIsEmpty =
+    userId && collectionSnapshot?.userId === userId ? collectionSnapshot.isEmpty : null;
   const onSurpriseReady = useCallback((launch: (() => void) | null) => {
     setSurpriseLauncher(() => launch);
   }, []);
+  const onCollectionEmptyChange = useCallback((isEmpty: boolean) => {
+    if (userId) setCollectionSnapshot({ userId, isEmpty });
+  }, [userId]);
+
+  useEffect(() => {
+    if (!isLoaded || !isSignedIn || !user) {
+      setIsInitialWelcome(null);
+      welcomeDecisionRef.current = null;
+      return;
+    }
+
+    const previousDecision = welcomeDecisionRef.current;
+    if (previousDecision?.userId === user.id) {
+      setIsInitialWelcome(previousDecision.isInitial);
+      return;
+    }
+
+    if (collectionIsEmpty === null) {
+      setIsInitialWelcome(null);
+      return;
+    }
+
+    let hasSeenWelcome = true;
+    try {
+      const storageKey = `the-crochet-edit:welcome-seen:${user.id}`;
+      hasSeenWelcome = window.localStorage.getItem(storageKey) === "true";
+      window.localStorage.setItem(storageKey, "true");
+    } catch {
+      // If browser storage is unavailable, keep the returning-user actions visible.
+    }
+
+    const isInitial = !hasSeenWelcome && collectionIsEmpty;
+    welcomeDecisionRef.current = { userId: user.id, isInitial };
+    setIsInitialWelcome(isInitial);
+  }, [isLoaded, isSignedIn, user?.id, collectionIsEmpty]);
 
   if (!isLoaded) {
     return <main className="loading-state" aria-label="Loading account" />;
@@ -188,13 +228,14 @@ function HomePage() {
 
   if (isSignedIn) {
     const firstName = user.firstName?.trim();
+    const greeting = isInitialWelcome === false ? "Welcome back" : "Welcome";
     return (
       <main className="welcome-page welcome-page-with-dashboard">
         <div className="welcome-orb orb-sage" />
         <div className="welcome-orb orb-pink" />
         <section className="welcome-card">
           <span className="eyebrow">A place for your next little project</span>
-          <h1>Welcome{firstName ? `, ${firstName}` : " back"}.</h1>
+          <h1>{greeting}{firstName ? `, ${firstName}` : ""}.</h1>
           <p>
             Your crochet corner is ready whenever inspiration finds you.
             We’re glad you’re here.
@@ -206,15 +247,19 @@ function HomePage() {
                 Add Your First Inspiration <span aria-hidden="true">↗</span>
               </Link>
             )}
-            <Link className="button button-primary" href="/inspirations">Open my collection <span aria-hidden="true">↗</span></Link>
-            <button
-              className="button button-primary welcome-surprise-button"
-              type="button"
-              onClick={() => surpriseLauncher?.()}
-              disabled={!surpriseLauncher}
-            >
-              Surprise Me! <span aria-hidden="true">✦</span>
-            </button>
+            {isInitialWelcome === false && (
+              <>
+                <Link className="button button-primary" href="/inspirations">Open my collection <span aria-hidden="true">↗</span></Link>
+                <button
+                  className="button button-primary welcome-surprise-button"
+                  type="button"
+                  onClick={() => surpriseLauncher?.()}
+                  disabled={!surpriseLauncher}
+                >
+                  Surprise Me! <span aria-hidden="true">✦</span>
+                </button>
+              </>
+            )}
           </div>
           {collectionIsEmpty === true && (
             <section className="welcome-onboarding" aria-labelledby="welcome-onboarding-title">
@@ -248,8 +293,9 @@ function HomePage() {
         <Suspense fallback={<div className="dashboard-page dashboard-page-embedded" aria-label="Loading dashboard" />}>
           <DashboardPage
             embedded
+            showSurpriseButton={isInitialWelcome === false}
             onSurpriseReady={onSurpriseReady}
-            onCollectionEmptyChange={setCollectionIsEmpty}
+            onCollectionEmptyChange={onCollectionEmptyChange}
           />
         </Suspense>
       </main>
