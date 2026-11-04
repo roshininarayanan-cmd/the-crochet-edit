@@ -33,18 +33,18 @@ function PageTop({ children }: { children: ReactNode }) {
   );
 }
 
-function BrokenImageMark() {
+function BrokenImageMark({ category }: { category: string }) {
   return (
-    <div className="inspiration-placeholder" aria-label="No image available">
-      <span className="inspiration-placeholder-mark" aria-hidden="true">the edit</span>
+    <div className="inspiration-placeholder" aria-label={`${category} crochet idea without a photo`}>
+      <img className="inspiration-placeholder-icon" src="/category-bag.svg" alt="" aria-hidden="true" />
     </div>
   );
 }
 
-function InspirationImage({ src, title, detail = false }: { src: string | null; title: string; detail?: boolean }) {
+function InspirationImage({ src, title, category, detail = false }: { src: string | null; title: string; category: string; detail?: boolean }) {
   const [failed, setFailed] = useState(false);
   useEffect(() => setFailed(false), [src]);
-  if (!src || failed) return <BrokenImageMark />;
+  if (!src || failed) return <BrokenImageMark category={category} />;
   return (
     <img
       className={detail ? "" : "inspiration-image"}
@@ -123,7 +123,7 @@ function GalleryPage() {
                 <article key={item.id} className="inspiration-card">
                   <Link href={`/inspirations/${encodeURIComponent(item.id)}`} className="inspiration-card-link" aria-label={`View ${item.title}`}>
                     <div className="inspiration-image-wrap">
-                      <InspirationImage src={item.imageUrl} title={item.title} />
+                      <InspirationImage src={item.imageUrl} title={item.title} category={item.categoryName} />
                     </div>
                     <div className="inspiration-card-body">
                       <h2 className="inspiration-card-title">{item.title}</h2>
@@ -369,7 +369,7 @@ function DetailPage() {
             </div>
           ) : (
             <div className="inspiration-detail-layout">
-              <div className="inspiration-detail-visual"><InspirationImage src={record.imageUrl} title={record.title} detail /></div>
+              <div className="inspiration-detail-visual"><InspirationImage src={record.imageUrl} title={record.title} category={record.categoryName} detail /></div>
               <article className="inspiration-detail-copy">
                 <div className="inspiration-detail-categories">
                   <span className="inspiration-chip lavender">{record.categoryName}</span>

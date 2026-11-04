@@ -84,7 +84,12 @@
   border: 1px solid rgba(91,112,84,.19); transform: rotate(-22deg);
 }
 .inspiration-placeholder::after { width: 120px; height: 120px; border-color: rgba(128,101,148,.2); transform: rotate(24deg); }
-.inspiration-placeholder-mark { font: italic 36px/1 "Playfair Display", Georgia, serif; color: #6e816a; position: relative; z-index: 1; }
+.inspiration-placeholder-icon {
+  position: relative; z-index: 1; display: block; width: min(48%, 84px); height: auto;
+  filter: drop-shadow(0 8px 8px rgba(63, 80, 58, .12));
+  transform-origin: 50% 88%; animation: inspiration-bag-bob 3s ease-in-out infinite;
+}
+.inspiration-card:hover .inspiration-placeholder-icon { animation-duration: 1.15s; }
 .inspiration-card-body { padding: 12px; }
 .inspiration-card-title { margin: 0; font: 500 18px/1.2 "Playfair Display", Georgia, serif; letter-spacing: -.02em; overflow-wrap: anywhere; }
 .inspiration-card-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin-top: 9px; }
@@ -160,6 +165,10 @@
 
 @keyframes inspiration-skeleton { to { background-position: -220% 0; } }
 @keyframes inspiration-arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes inspiration-bag-bob {
+  0%, 100% { transform: translateY(0) rotate(-1.5deg); }
+  50% { transform: translateY(-7px) rotate(1.5deg); }
+}
 @media (max-width: 850px) {
   .inspiration-area { padding-left: 28px; padding-right: 28px; }
   .inspiration-gallery { grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 14px; }
