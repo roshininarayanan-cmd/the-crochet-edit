@@ -25,3 +25,7 @@ Verify that the new button works and that existing users can still navigate the 
 Do not commit or push directly to main, merge a PR, or publish the website.
 
 When finished, tell me what changed and how I can test
+
+## Follow-up prompt: first-time and returning welcome page
+
+Remove Surprise Me and Open my collection from the immediate post-signup landing page, and say Welcome, not Welcome back. For existing users after the initial signup landing page, keep Open my Collection and Surprise Me
