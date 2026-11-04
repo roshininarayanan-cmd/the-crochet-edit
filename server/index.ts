@@ -5,6 +5,7 @@ import { publishableKeyFromHost } from "@clerk/shared/keys";
 import { eq } from "drizzle-orm";
 import { createServer as createViteServer } from "vite";
 import { db } from "./db";
+import { requireLibraryOwner } from "./data-ownership";
 import { users } from "../shared/schema";
 import { CLERK_PROXY_PATH, clerkProxyMiddleware, getClerkProxyHost } from "./middlewares/clerkProxyMiddleware";
 
@@ -68,6 +69,12 @@ app.post("/api/auth/sync", async (req, res) => {
     console.error("Account sync failed:", error);
     res.status(500).json({ error: "We couldn't finish setting up your account. Please try again." });
   }
+});
+
+// No categories/inspirations CRUD endpoints exist in Feature 2.
+app.use(["/api/categories", "/api/inspirations"], requireLibraryOwner);
+app.use("/api", (_request, response) => {
+  response.status(404).json({ error: "Not found." });
 });
 
 if (process.env.NODE_ENV === "production") {
